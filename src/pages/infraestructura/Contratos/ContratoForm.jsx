@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { createContrato, updateContrato, getProveedores } from '../../../services/api';
+import AsyncSelect from 'react-select/async';
+import {
+    createContrato,
+    updateContrato,
+    buscarProveedoresSelect,
+    getProveedorById
+
+} from '../../../services/api';
 
 const ContratoForm = ({ contrato, onClose }) => {
-
-    const [proveedores, setProveedores] = useState([]);
+    const [opcionesProveedor, setOpcionesProveedor] = useState([]);
     const [form, setForm] = useState({
         idProveedor: '',
         numeroContrato: '',
@@ -25,20 +31,39 @@ const ContratoForm = ({ contrato, onClose }) => {
     const [mensajeExito, setMensajeExito] = useState(null);
     const isEditing = !!contrato;
 
+    //Carga inicial de datos
     useEffect(() => {
-        const cargarProveedores = async () => {
-            try {
-                const data = await getProveedores();
-                const lista = Array.isArray(data.datos) ? data.datos : Array.isArray(data) ? data : [];
-                setProveedores(lista);
-            } catch (err) {
-                setError('Error al cargar proveedores.');
-                setProveedores([]);
-            }
-        };
-        cargarProveedores();
-    }, []);
+        if (contrato) {
+            setForm({
+                idProveedor: contrato.idProveedor?.toString() || '',
+                numeroContrato: contrato.numeroContrato || '',
+                montoContrato: contrato.montoContrato?.toString() || '',
+                fechaInicio: contrato.fechaInicio.toString() || '',
+                fechaFin: contrato.fechaFin.toString(),
+                bolsonImpresionesCopiasBw: contrato.bolsonImpresionesCopiasBw?.toString() || '',
+                bolsonImpresionesCopiasColor: contrato.bolsonImpresionesCopiasColor?.toString() || '',
+                costoExcedenteBw: contrato.costoExcedenteBw?.toString() || '',
+                costoExcedenteColor: contrato.costoExcedenteColor?.toString() || '',
+                estado: contrato.estado ?? true
+            });
 
+            const cargarDatosForaneos = async () => {
+                try {
+                    const [proveedor] = await Promise.all([
+                        getProveedorById(contrato.idProveedor),
+                    ]);
+
+                    setOpcionesProveedor([{ value: proveedor.idProveedor, label: proveedor.nombre }]);
+                } catch (error) {
+                    console.error('Error al cargar datos foráneos:', error);
+                }
+            };
+
+            cargarDatosForaneos();
+        }
+    }, [contrato]);
+
+    // Carga de datos si estamos editando
     useEffect(() => {
         if (contrato) {
             const formatDate = (fecha) => {
@@ -144,12 +169,6 @@ const ContratoForm = ({ contrato, onClose }) => {
     };
 
 
-    // Evita renderizar el formulario si proveedores aún no está listo
-    if (!Array.isArray(proveedores) || proveedores.length === 0) {
-        return <div className="p-4 text-gray-500">Cargando proveedores...</div>;
-    }
-
-
     return (
         <form onSubmit={handleSubmit} className="p-4">
             <h2 className="text-2xl font-semibold mb-4">
@@ -170,22 +189,38 @@ const ContratoForm = ({ contrato, onClose }) => {
 
             {/* Proveedor */}
             <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Proveedor</label>
-                <select
-                    name="idProveedor"
-                    value={form.idProveedor}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border rounded px-3 py-2"
-                >
-                    <option value="">Seleccione un proveedor</option>
-                    {proveedores.map(p => (
-                        <option key={p.idProveedor} value={p.idProveedor}>
-                            {p.nombre}
-                        </option>
-                    ))}
-                </select>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Proveedor Asociado</label>
+                <AsyncSelect
+                    cacheOptions
+                    defaultOptions
+                    loadOptions={async (inputValue) => {
+                        const opciones = await buscarProveedoresSelect(inputValue, 1, 50);
+                        setOpcionesProveedor(opciones);
+                        return opciones;
+                    }}
+                    value={
+                        form.idProveedor
+                            ? opcionesProveedor.find((o) => o.value === parseInt(form.idProveedor)) || {
+                                value: form.idProveedor
+                                    ? opcionesProveedor.find((o) => o.value === parseInt(form.idProveedor)) || null
+                                    : null
+                            }
+                            : null
+                    }
+                    onChange={(opcion) => {
+                        setForm((prev) => ({ ...prev, idProveedor: opcion?.value || '' }));
+                        setOpcionesProveedor((prev) => {
+                            // si no existe en la lista, la agregamos
+                            if (opcion && !prev.some(o => o.value === opcion.value)) {
+                                return [...prev, opcion];
+                            }
+                            return prev;
+                        });
+                    }}
+                    placeholder="Buscar y seleccionar proveedor..."
+                    isClearable
+                    className="mb-4"
+                />
             </div>
 
             {/* Número y Monto */}

@@ -1,12 +1,17 @@
 // src/pages/infraestructura/Modelos/ModeloForm.jsx
 import React, { useState, useEffect } from 'react';
 import AsyncSelect from 'react-select/async';
-import { createModelo, updateModelo, buscarMarcasSelect, getMarcaById } from '../../../services/api';
+import {
+    createUbicacion,
+    updateUbicacion,
+    buscarSitiosSelect,
+    getSitioById
+} from '../../../services/api';
 
-const ModeloForm = ({ modelo, onClose }) => {
-    const [opcionesMarca, setOpcionesMarca] = useState([]);
+const UbicacionForm = ({ ubicacion, onClose }) => {
+    const [opcionesSitio, setOpcionesSitio] = useState([]);
     const [form, setForm] = useState({
-        idMarca: '',
+        idSitio: '',
         descripcion: '',
         estado: true,
     });
@@ -14,24 +19,24 @@ const ModeloForm = ({ modelo, onClose }) => {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!modelo;
+    const isEditing = !!ubicacion;
 
     //Carga inicial de datos
     useEffect(() => {
-        if (modelo) {
+        if (ubicacion) {
             setForm({
-                idMarca: modelo.idMarca?.toString() || '',
-                descripcion: modelo.descripcion || '',
-                estado: modelo.estado ?? true
+                idSitio: ubicacion.idSitio?.toString() || '',
+                descripcion: ubicacion.descripcion || '',
+                estado: ubicacion.estado ?? true
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [marca] = await Promise.all([
-                        getMarcaById(modelo.idMarca),
+                    const [sitio] = await Promise.all([
+                        getSitioById(ubicacion.idSitio),
                     ]);
 
-                    setOpcionesMarca([{ value: marca.idMarca, label: marca.descripcion }]);
+                    setOpcionesSitio([{ value: sitio.idSitio, label: sitio.descripcion }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -39,18 +44,18 @@ const ModeloForm = ({ modelo, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [modelo]);
+    }, [ubicacion]);
 
     //Función para recargar datos
     useEffect(() => {
-        if (modelo) {
+        if (ubicacion) {
             setForm({
-                idMarca: modelo.idMarca?.toString() || '',
-                descripcion: modelo.descripcion || '',
-                estado: modelo.estado ?? true
+                idSitio: ubicacion.idSitio?.toString() || '',
+                descripcion: ubicacion.descripcion || '',
+                estado: ubicacion.estado ?? true
             });
         }
-    }, [modelo]);
+    }, [ubicacion]);
 
 
     const handleChange = (e) => {
@@ -61,17 +66,15 @@ const ModeloForm = ({ modelo, onClose }) => {
         }));
     };
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!form.descripcion.trim()) {
-            setError("La descripción del modelo no puede estar vacía.");
+            setError("La descripción de la ubicación no puede estar vacía.");
             return;
         }
-        if (!form.idMarca) {
-            setError("Debe seleccionar una marca.");
+        if (!form.idSitio) {
+            setError("Debe seleccionar un sitio.");
             return;
         }
 
@@ -82,24 +85,24 @@ const ModeloForm = ({ modelo, onClose }) => {
         // Conversión segura de tipos
         const payload = {
             ...form,
-            idMarca: parseInt(form.idMarca),
+            idSitio: parseInt(form.idSitio),
             descripcion: form.descripcion.trim(),
             estado: form.estado ?? false
         };
 
         try {
             if (isEditing) {
-                await updateModelo(modelo.idModelo, payload);
+                await updateUbicacion(ubicacion.idUbicacion, payload);
             } else {
-                await createModelo(payload);
+                await createUbicacion(payload);
             }
 
-            setMensajeExito(`Modelo ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
+            setMensajeExito(`Ubicación ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
 
             // Cierra el modal y fuerza recarga en la tabla
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            let errorMessage = 'Error al guardar el modelo.';
+            let errorMessage = 'Error al guardar la ubicación.';
             if (err.response?.data?.error) {
                 errorMessage = err.response.data.error;
             } else if (err.message) {
@@ -115,7 +118,7 @@ const ModeloForm = ({ modelo, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Modelo' : 'Crear Nuevo Modelo'}
+                {isEditing ? 'Editar Ubicación' : 'Crear Nueva Ubicación'}
             </h2>
 
             {error && (
@@ -131,7 +134,7 @@ const ModeloForm = ({ modelo, onClose }) => {
             )}
 
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcion"> Descripción del Modelo</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcion"> Descripción de la Ubicación</label>
                 <input
                     id="descripcion"
                     type="text"
@@ -145,27 +148,27 @@ const ModeloForm = ({ modelo, onClose }) => {
             </div>
 
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="idMarca">Marca Asociada</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="idUbicacion">Sitio Asociado</label>
                 <AsyncSelect
                     cacheOptions
                     defaultOptions
                     loadOptions={async (inputValue) => {
-                        const opciones = await buscarMarcasSelect(inputValue, 1, 50);
-                        setOpcionesMarca(opciones);
+                        const opciones = await buscarSitiosSelect(inputValue, 1, 50);
+                        setOpcionesSitio(opciones);
                         return opciones;
                     }}
                     value={
-                        form.idMarca
-                            ? opcionesMarca.find((o) => o.value === parseInt(form.idMarca)) || {
-                                value: form.idMarca
-                                    ? opcionesMarca.find((o) => o.value === parseInt(form.idMarca)) || null
+                        form.idSitio
+                            ? opcionesSitio.find((o) => o.value === parseInt(form.idSitio)) || {
+                                value: form.idSitio
+                                    ? opcionesSitio.find((o) => o.value === parseInt(form.idSitio)) || null
                                     : null
                             }
                             : null
                     }
                     onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idMarca: opcion?.value || '' }));
-                        setOpcionesMarca((prev) => {
+                        setForm((prev) => ({ ...prev, idSitio: opcion?.value || '' }));
+                        setOpcionesSitio((prev) => {
                             // si no existe en la lista, la agregamos
                             if (opcion && !prev.some(o => o.value === opcion.value)) {
                                 return [...prev, opcion];
@@ -173,7 +176,7 @@ const ModeloForm = ({ modelo, onClose }) => {
                             return prev;
                         });
                     }}
-                    placeholder="Buscar y seleccionar marca..."
+                    placeholder="Buscar y seleccionar sitio..."
                     isClearable
                     className="mb-4"
                 />
@@ -189,7 +192,7 @@ const ModeloForm = ({ modelo, onClose }) => {
                         className="mr-2"
                     />
                     <label className="text-sm text-gray-700 font-bold">
-                        Modelo Activo
+                        Ubicacion Activa
                         <span className="text-gray-500 text-xs ml-2">
                             ({form.estado ? 'Visible' : 'Oculto/Desactivado'})
                         </span>
@@ -218,4 +221,4 @@ const ModeloForm = ({ modelo, onClose }) => {
     );
 };
 
-export default ModeloForm;
+export default UbicacionForm;

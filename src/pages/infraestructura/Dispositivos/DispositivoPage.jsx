@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { getModelosPaginados, deleteModelo, toggleModeloEstado, exportarModelos } from '../../../services/api';
-import ModeloForm from './ModeloForm';
+import { getDispositivosPaginados, deleteDispositivo, toggleDispositivoEstado, exportarDispositivos } from '../../../services/api';
+import DispositivoForm from './DispositivoForm';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
 
-const ModelosPage = () => {
+
+const DispositivoPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modeloEditando, setModeloEditando] = useState(null);
+    const [DispositivoEditando, setDispositivoEditando] = useState(null);
 
     const {
-        items: modelos,
+        items: dispositivos,
         cargando,
         error,
         searchTerm,
@@ -26,70 +27,67 @@ const ModelosPage = () => {
         handleNextPage,
         handlePrevPage
     } = useFiltroPaginado({
-        fetchFunction: getModelosPaginados,
-        exportFunction: exportarModelos
+        fetchFunction: getDispositivosPaginados,
+        exportFunction: exportarDispositivos
     });
 
     const handleCreate = () => {
-        setModeloEditando(null);
+        setDispositivoEditando(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (modelo) => {
-        setModeloEditando(modelo);
+    const handleEdit = (dispositivo) => {
+        setDispositivoEditando(dispositivo);
         setIsModalOpen(true);
     };
 
-    const handleToggleEstado = async (modelo) => {
-        const nuevoEstado = !modelo.estado;
+    const handleToggleEstado = async (dispositivo) => {
+        const nuevoEstado = !dispositivo.estado;
         const accion = nuevoEstado ? 'activar' : 'desactivar';
 
-        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el modelo "${modelo.descripcion}"?`)) return;
+        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el dispositivo "${dispositivo.nombre}"?`)) return;
 
         try {
-            await toggleModeloEstado(modelo.idModelo, nuevoEstado);
-            alert(`Modelo "${modelo.descripcion}" ${accion}do con éxito.`);
+            await toggleDispositivoEstado(dispositivo.idDispositivo, nuevoEstado);
+            alert(`Dispositivo "${dispositivo.nombre}" ${accion}da con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al ${accion}: ${err.message}`);
         }
     };
-
-    const handleDelete = async (id, descripcion) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el modelo "${descripcion}"? Esta acción es irreversible.`)) return;
+    const handleDelete = async (id, nombre) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el dispositivo "${nombre}"? Esta acción es irreversible.`)) return;
 
         try {
-            await deleteModelo(id);
-            alert(`Modelo "${descripcion}" eliminado con éxito.`);
+            await deleteDispositivo(id);
+            alert(`Dispositivo "${nombre}" eliminada con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (modeloActualizado = false) => {
+    const handleCloseModal = (dispositivoActualizado = false) => {
         setIsModalOpen(false);
-        setModeloEditando(null);
-        if (modeloActualizado) fetchData(paginaActual);
+        setDispositivoEditando(null);
+        if (dispositivoActualizado) fetchData(paginaActual);
     };
 
 
-    //=================================================================================
-    //Renderizado
-    //=================================================================================
-
-    if (cargando) return <div className="p-6 text-gray-500">Cargando modelos...</div>;
+    // --- Renderizado Condicional ---
+    if (cargando) return <div className="p-12 text-gray-500">Cargando dispositivos...</div>;
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
         <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Modelos</h1>
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Dispositivos</h1>
             <div className="flex justify-between items-center">
+
                 <button
                     onClick={handleCreate}
                     className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
                 >
-                    ➕ Crear Nuevo Modelo
+                    ➕ Crear Nuevo Dispositivo
                 </button>
 
                 <div className="flex items-center space-x-4">
@@ -97,7 +95,7 @@ const ModelosPage = () => {
                         value={searchTerm}
                         onDebouncedChange={(val) => setSearchTerm(val)}
                         disabled={cargando}
-                        placeholder="Buscar por Nombre o Marca..."
+                        placeholder="Buscar por Nombre, serie..."
                     />
 
                     {/* Control de Selección de Estado */}
@@ -106,7 +104,7 @@ const ModelosPage = () => {
                         onChange={(e) => setEstadoFiltro(e.target.value)}
                         className="border border-gray-300 rounded-lg p-2 text-sm shadow-sm"
                     >
-                        <option value="">Todos</option>
+                        <option value="">Todos</option> {/* Valor vacío o 'todo' para no filtrar */}
                         <option value="activo">Activos</option>
                         <option value="inactivo">Inactivos</option>
                     </select>
@@ -122,7 +120,6 @@ const ModelosPage = () => {
                         </svg>
                         Exportar
                     </button>
-
                     <select
                         value={tamanoPagina}
                         onChange={(e) => setTamanoPagina(Number(e.target.value))}
@@ -134,64 +131,64 @@ const ModelosPage = () => {
                         <option value={50}>50 por página</option>
                     </select>
                 </div>
+
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serie</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitio</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-200">
-                        {modelos.map((modelo) => (
-                            <tr key={modelo.idModelo}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{modelo.idModelo}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{modelo.descripcion}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{modelo.descripcionMarca}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${modelo.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {modelo.estado ? 'Activo' : 'Inactivo'}
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {dispositivos.map((d) => (
+                            <tr key={d.idDispositivo}>
+                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{d.idDispositivo}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.nombre}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.serie}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.tipo}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcion}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionModelo}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionMarca}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionUbicacion}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionSitio}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{d.numeroContrato}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${d.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        {d.estado ? 'Activa' : 'Inactiva'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => handleEdit(modelo)}
-                                        className="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150"
-                                    >
-                                        Editar
+                                <td className="px-6 py-4 text-right text-sm font-medium">
+                                    <button onClick={() => handleEdit(d)} className="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150">Editar</button>
+                                    <button onClick={() => handleToggleEstado(d)} className={`mr-3 transition duration-150 ${d.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}>
+                                        {d.estado ? 'Desactivar' : 'Activar'}
                                     </button>
-                                    <button
-                                        onClick={() => handleToggleEstado(modelo)}
-                                        className={`mr-3 transition duration-150 ${modelo.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                        title={modelo.estado ? 'Desactivar Modelo' : 'Activar Modelo'}
-                                    >
-                                        {modelo.estado ? 'Desactivar' : 'Activar'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(modelo.idModelo, modelo.descripcion)}
-                                        className="text-red-600 hover:text-red-900 transition duration-150"
-                                    >
-                                        Eliminar
-                                    </button>
+                                    <button onClick={() => handleDelete(d.idDispositivo, d.nombre)} className="text-red-600 hover:text-red-900 transition duration-150">Eliminar</button>
                                 </td>
                             </tr>
                         ))}
-                        {modelos.length === 0 && !cargando && (
+                        {dispositivos.length === 0 && (
                             <tr>
-                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                                    No se encontraron modelos.
-                                </td>
+                                <td colSpan="12" className="px-6 py-4 text-center text-gray-500">No se encontraron dispositivos.</td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
 
             {/* CONTROLES DE PAGINACIÓN */}
             <div className="flex justify-center items-center mt-6 p-4 border-t border-gray-200 space-x-1 flex-wrap">
@@ -229,8 +226,8 @@ const ModelosPage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-center backdrop-blur-sm transition duration-300">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-lg w-full transform transition duration-300 scale-100 opacity-100">
-                        <ModeloForm
-                            modelo={modeloEditando}
+                        <DispositivoForm
+                            dispositivo={DispositivoEditando}
                             onClose={handleCloseModal}
                         />
                     </div>
@@ -238,6 +235,6 @@ const ModelosPage = () => {
             )}
         </div>
     );
-
 };
-export default ModelosPage;
+
+export default DispositivoPage;

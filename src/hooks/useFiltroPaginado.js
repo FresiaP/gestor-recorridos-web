@@ -11,11 +11,12 @@ export const useFiltroPaginado = ({ fetchFunction, exportFunction }) => {
     const [tamanoPagina, setTamanoPagina] = useState(10);
     const [totalPaginas, setTotalPaginas] = useState(1);
 
-    const fetchData = useCallback(async (page) => {
+    // Función para traer datos
+    const fetchData = useCallback(async (page, size, query, estado) => {
         setCargando(true);
         setError(null);
         try {
-            const data = await fetchFunction(page, tamanoPagina, searchTerm, estadoFiltro);
+            const data = await fetchFunction(page, size, query, estado);
             setItems(data.datos || []);
             setTotalPaginas(data.totalPaginas);
         } catch (err) {
@@ -23,16 +24,19 @@ export const useFiltroPaginado = ({ fetchFunction, exportFunction }) => {
         } finally {
             setCargando(false);
         }
-    }, [fetchFunction, tamanoPagina, searchTerm, estadoFiltro]);
+    }, [fetchFunction]);
 
+    // Reinicia a página 1 si cambian filtros o búsqueda
     useEffect(() => {
         setPaginaActual(1);
     }, [searchTerm, estadoFiltro]);
 
+    // Cada vez que cambien página, tamaño, búsqueda o filtro → recarga datos
     useEffect(() => {
-        fetchData(paginaActual);
-    }, [paginaActual, fetchData]);
+        fetchData(paginaActual, tamanoPagina, searchTerm, estadoFiltro);
+    }, [paginaActual, tamanoPagina, searchTerm, estadoFiltro, fetchData]);
 
+    // Exportar datos
     const handleExport = async () => {
         try {
             await exportFunction({ query: searchTerm, estadoFiltro });
@@ -41,6 +45,7 @@ export const useFiltroPaginado = ({ fetchFunction, exportFunction }) => {
         }
     };
 
+    // Navegación de páginas
     const handleNextPage = () => {
         if (paginaActual < totalPaginas) setPaginaActual(p => p + 1);
     };

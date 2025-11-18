@@ -1,5 +1,5 @@
 // src/services/api.js
-import { queries } from '@testing-library/dom';
+//import { queries } from '@testing-library/dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
@@ -70,7 +70,7 @@ export const apiGet = async (endpoint) => {
 };
 
 // ==========================================================================
-// USUARIOS Y AUTENTICACIÓN 
+// AUTENTICACIÓN DE USUARIOS
 // ==========================================================================
 export const login = async (login, password) => {
     try {
@@ -87,52 +87,227 @@ export const login = async (login, password) => {
     }
 };
 
-export const registrarUsuario = async (usuarioData) => {
-    try {
-        const response = await api.post('/usuarios', usuarioData);
-        return response.data;
-    } catch (error) {
-        // Usando la función central
-        throw new Error(extractErrorMessage(error, 'Error al registrar usuario.'));
-    }
-};
-
 export const getUsuarioActual = () => {
-    const token = getToken();
+    const token = sessionStorage.getItem('token');
     if (!token) return null;
 
     try {
         const payload = jwtDecode(token);
-        const permisosClaim = payload.permisos;
-        let permisosArray = [];
 
-        if (permisosClaim) {
+        // Parsear permisos
+        let permisosArray = [];
+        if (payload.permisos) {
             try {
-                const parsed = JSON.parse(permisosClaim);
+                const parsed = JSON.parse(payload.permisos);
                 permisosArray = Array.isArray(parsed) ? parsed : [parsed];
-            } catch (e) {
-                permisosArray = [permisosClaim];
+            } catch {
+                permisosArray = [payload.permisos];
             }
         }
 
-        const now = Date.now().valueOf() / 1000;
+        // Validar expiración del token
+        const now = Date.now() / 1000;
         if (payload.exp < now) {
             eliminarToken();
             return null;
         }
 
         return {
-            id: payload.nameid,
+            // ✅ Usa IdUsuario si existe, si no usa nameid
+            id: payload.IdUsuario || payload.nameid,
             nombre: payload.nombre,
             login: payload.unique_name,
             rol: payload.role,
+            estado: payload.estado, // si tu backend lo envía
             permisos: permisosArray,
         };
-    } catch (err) {
+    } catch {
         eliminarToken();
         return null;
     }
 };
+
+
+// ==============================================================================
+// USUARIOS CRUD
+// ==============================================================================
+export const getUsuariosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
+    try {
+        const params = new URLSearchParams();
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+        if (query?.trim()) params.append('query', query.trim());
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== 'todo') {
+            params.append('estado', estadoFiltro); // 👈 coincide con backend
+        }
+
+        const url = `/usuarios?${params.toString()}`;
+        const response = await api.get(url);
+
+        // 👇 Adaptamos al formato que espera el hook
+        return {
+            datos: response.data.items || [],                // lista de usuarios
+            totalPaginas: Math.ceil(response.data.total / tamano) // número de páginas
+        };
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener usuarios.'));
+    }
+};
+
+export const createUsuario = async (data) => {
+    try {
+        const response = await api.post('/usuarios', data);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al crear usuario.'));
+    }
+};
+
+export const updateUsuario = async (id, data) => {
+    try {
+        const response = await api.put(`/usuarios/${id}`, data);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al actualizar usuario.'));
+    }
+};
+
+export const toggleUsuarioEstado = async (id, nuevoEstado) => {
+    try {
+        await api.patch(`/usuarios/${id}/estado`, { estado: nuevoEstado });
+        return { id, estado: nuevoEstado };
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al cambiar estado de usuario.'));
+    }
+};
+
+export const deleteUsuario = (id) => api.delete(`/usuarios/${id}`).then(res => res.data);
+
+export const exportarUsuarios = async ({ query = '', estadoFiltro = '' }) => {
+    try {
+        const params = {
+            ...(query.trim() && { query: query.trim() }),
+            ...(estadoFiltro && { estadoFiltro })
+        };
+
+        const response = await api.get('/usuarios/exportar', {
+            params,
+            responseType: 'blob'
+        });
+
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = 'usuarios_export.xlsx';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?(.+)"?$/);
+            if (match && match[1]) fileName = match[1];
+        }
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        return true;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al exportar usuarios.'));
+    }
+};
+
+
+// ==============================================================================
+// PERMISOS Y ASIGNACIÓN DE PERMISOS
+// ==============================================================================
+export const getPermisos = () => apiGet('/permisos');
+
+export const buscarPermisosSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/permisos/select', { params });
+    return response.data.map(p => ({
+        value: p.value ?? p.Value,
+        label: p.label ?? p.Label
+    }));
+};
+
+
+export const asignarPermisosUsuario = async (idUsuario, permisosIds) => {
+    try {
+        const response = await api.post(`/usuarios/${idUsuario}/permisos`, { permisos: permisosIds });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al asignar permisos.'));
+    }
+};
+
+// PERMISOS CRUD (solo lectura + exportar)
+export const getPermisosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
+    try {
+        const params = new URLSearchParams();
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+        if (query?.trim()) params.append('query', query.trim());
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        const url = `/permisos?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener permisos.'));
+    }
+};
+
+// Obtener permisos actuales de un usuario
+export const getPermisosUsuario = async (idUsuario) => {
+    try {
+        const response = await api.get(`/usuarios/${idUsuario}/permisos`);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener permisos del usuario.'));
+    }
+};
+
+
+export const exportarPermisos = async ({ query = '', estadoFiltro = '' }) => {
+    try {
+        const params = {
+            ...(query.trim() && { query: query.trim() }),
+            ...(estadoFiltro && { estadoFiltro })
+        };
+
+        const response = await api.get('/permisos/exportar', {
+            params,
+            responseType: 'blob'
+        });
+
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = 'permisos_export.xlsx';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?(.+)"?$/);
+            if (match && match[1]) fileName = match[1];
+        }
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        return true;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al exportar permisos.'));
+    }
+};
+
+
 
 // ==============================================================================
 // CATEGORÍAS 
@@ -155,6 +330,19 @@ export const getCategoriasPaginadas = async (pagina = 1, tamano = 10, query = ''
         throw error;
     }
 };
+
+export const buscarCategoriasSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/categorias/select', { params });
+    return response.data.map(c => ({
+        value: c.value ?? c.Value,
+        label: c.label ?? c.Label
+    }));
+};
+
 
 export const exportarCategorias = async ({ query = '', estadoFiltro = '' }) => {
     try {
@@ -255,6 +443,17 @@ export const getMarcasPaginadas = async (pagina = 1, tamano = 10, query = '', es
         // Usando la función central
         throw new Error(extractErrorMessage(error, 'Error al obtener marcas paginadas.'));
     }
+};
+export const buscarMarcasSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/marcas/select', { params });
+    return response.data.map(m => ({
+        value: m.value ?? m.Value,
+        label: m.label ?? m.Label
+    }));
 };
 
 export const exportarMarcas = async ({ query = "", estadoFiltro = "" } = {}) => {
@@ -360,6 +559,19 @@ export const getProveedoresPaginadas = async (pagina = 1, tamano = 10, query = '
         throw new Error(extractErrorMessage(error, 'Error al obtener proveedores paginados.'));
     }
 };
+
+export const buscarProveedoresSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/proveedor/select', { params });
+    return response.data.map(p => ({
+        value: p.value ?? p.Value,
+        label: p.label ?? p.Label
+    }));
+};
+
 export const exportarProveedores = async ({ query = "", estadoFiltro = "" } = {}) => {
     try {
         const token = getToken();
@@ -464,6 +676,18 @@ export const getSitiosPaginados = async (pagina = 1, tamano = 10, query = '', es
     }
 };
 
+export const buscarSitiosSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/sitios/select', { params });
+    return response.data.map(s => ({
+        value: s.value ?? s.Value,
+        label: s.label ?? s.Label
+    }));
+};
+
 export const exportarSitios = async ({ query = "", estadoFiltro = "" } = {}) => {
     try {
         const token = getToken();
@@ -561,6 +785,23 @@ export const getContratosPaginadas = async (pagina = 1, tamano = 10, query = '',
     return response.data;
 };
 
+export const buscarContratosSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/contratos/select', { params });
+    return response.data.map(c => ({
+        value: c.value ?? c.Value,
+        label: c.label ?? c.Label
+    }));
+};
+
+export const buscarContratosTop = async (query = '') => {
+    const { datos } = await getContratosPaginadas(1, 10, query);
+    return datos ?? [];
+};
+
 export const exportarContratos = async ({ query = '', fechaInicio = null, fechaFin = null }) => {
     try {
         const token = getToken();
@@ -593,7 +834,6 @@ export const exportarContratos = async ({ query = '', fechaInicio = null, fechaF
         throw new Error(extractErrorMessage(error, 'Error al exportar contratos.'));
     }
 };
-
 
 export const getContratos = () => apiGet('/contratos');
 
@@ -628,34 +868,69 @@ export const deleteContrato = (id) => api.delete(`/contratos/${id}`).then(res =>
 // ==============================================================================
 // MODELOS
 // ==============================================================================
-export const getModelosPaginados = async (pagina = 1, tamano = 10, query = '') => {
+export const getModelosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
-        const url = `/modelo?pagina=${pagina}&tamano=${tamano}&query=${encodeURIComponent(query)}`;
-        const response = await api.get(url);
+        const params = new URLSearchParams();
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+        if (query) params.append('query', query);
+        if (estadoFiltro) params.append('estadoFiltro', estadoFiltro);
+
+        const response = await api.get(`/modelo?${params.toString()}`);
         return response.data;
     } catch (error) {
         throw new Error(extractErrorMessage(error, 'Error al obtener modelos paginados.'));
     }
 };
 
-export const exportarModelos = async (query = '') => {
+export const buscarModelosSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/modelo/select', { params });
+    return response.data.map(m => ({
+        value: m.value ?? m.Value,
+        label: m.label ?? m.Label
+    }));
+};
+
+export const buscarModelosTop = async (query = '') => {
+    const { datos } = await getModelosPaginados(1, 10, query);
+    return datos ?? [];
+};
+
+export const exportarModelos = async ({ query = "", estadoFiltro = "" } = {}) => {
     try {
         const token = getToken();
-        const url = `${BASE_URL}/modelo/exportar${query ? `?query=${encodeURIComponent(query)}` : ''}`;
+        const params = new URLSearchParams();
 
-        const response = await axios.get(url, {
-            responseType: 'blob',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        if (query?.trim()) params.append('query', query.trim());
+
+        // Agregar filtro de estado al exportar
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+        const url = `${BASE_URL}/modelo/exportar?${params.toString()}`;
+
+        const response = await axios.get(
+            url,
+            {
+                responseType: 'blob',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
 
         const blob = new Blob([response.data], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
+        })
 
+        // Crear un enlace temporal para descargar el archivo
+        const urlBlob = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
+        link.href = urlBlob;
         link.setAttribute('download', 'Modelos_Exportados.xlsx');
         document.body.appendChild(link);
         link.click();
@@ -664,8 +939,6 @@ export const exportarModelos = async (query = '') => {
         throw new Error(extractErrorMessage(error, 'Error al exportar modelos.'));
     }
 };
-
-
 export const getModelos = () => apiGet('/modelo');
 
 export const getModeloById = (id) => apiGet(`/modelo/${id}`);
@@ -698,6 +971,333 @@ export const toggleModeloEstado = async (id, nuevoEstado) => {
 };
 
 export const deleteModelo = (id) => api.delete(`/modelo/${id}`).then(res => res.data);
+
+// ==============================================================================
+// Ubicaciones
+// ==============================================================================
+export const getUbicacionesPaginadas = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
+    try {
+        const params = new URLSearchParams();
+
+        // Agregar parámetros de paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Agregar filtro de búsqueda por nombre
+        if (query?.trim()) {
+            params.append('query', query.trim());
+        }
+
+        // Agregar filtro por estado (el nuevo parámetro)
+        // Lo enviamos solo si tiene un valor que no sea vacío.
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        const url = `/ubicacion/?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al obtener ubicaciones paginadas.'));
+    }
+};
+
+export const buscarUbicacionesSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/ubicacion/select', { params });
+    return response.data.map(u => ({
+        value: u.value ?? u.Value,
+        label: u.label ?? u.Label
+    }));
+};
+
+export const buscarUbicacionesTop = async (query = '') => {
+    const { datos } = await getUbicacionesPaginadas(1, 10, query);
+    return datos ?? [];
+};
+
+export const exportarUbicaciones = async ({ query = "", estadoFiltro = "" } = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        if (query?.trim()) params.append('query', query.trim());
+
+        // Agregar filtro de estado al exportar
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+        const url = `${BASE_URL}/ubicacion/exportar?${params.toString()}`;
+
+        const response = await axios.get(
+            url,
+            {
+                responseType: 'blob',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+
+        // Crear un enlace temporal para descargar el archivo
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = urlBlob;
+        link.setAttribute('download', 'Ubicaciones_Exportados.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al exportar proveedores.'));
+    }
+};
+export const getUbicaciones = () => apiGet('/ubicacion');
+
+export const getUbicacionesById = (id) => apiGet(`/ubicacion/${id}`);
+
+export const createUbicacion = async (data) => {
+    try {
+        const response = await api.post('/ubicacion', data);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al crear ubicacion.'));
+    }
+};
+export const updateUbicacion = async (id, data) => {
+    try {
+        const response = await api.put(`/ubicacion/${id}`, data);
+        return response.data; // El controlador de C# devuelve la ubicación actualizado
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al actualizar ubicacion.'));
+    }
+};
+export const toggleUbicacionEstado = async (id, nuevoEstado) => {
+    try {
+        await api.patch(`/ubicacion/${id}/estado`, { estado: nuevoEstado });
+        return { id, estado: nuevoEstado };
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al cambiar estado de la ubicacion.'));
+    }
+};
+export const deleteUbicacion = (id) => api.delete(`/ubicacion/${id}`).then(res => res.data);
+
+
+// ==============================================================================
+// Dispositivos
+// ==============================================================================
+export const getDispositivosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
+    try {
+        const params = new URLSearchParams();
+
+        // Agregar parámetros de paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Agregar filtro de búsqueda por nombre
+        if (query?.trim()) {
+            params.append('query', query.trim());
+        }
+
+        // Agregar filtro por estado (el nuevo parámetro)
+        // Lo enviamos solo si tiene un valor que no sea vacío.
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        const url = `/dispositivos/?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al obtener dispositivos paginados.'));
+    }
+};
+
+export const exportarDispositivos = async ({ query = "", estadoFiltro = "" } = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        if (query?.trim()) params.append('query', query.trim());
+
+        // Agregar filtro de estado al exportar
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+        const url = `${BASE_URL}/dispositivos/exportar?${params.toString()}`;
+
+        const response = await axios.get(
+            url,
+            {
+                responseType: 'blob',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+
+        // Crear un enlace temporal para descargar el archivo
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = urlBlob;
+        link.setAttribute('download', 'Proveedores_Exportados.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al exportar proveedores.'));
+    }
+};
+export const getDispositivos = () => apiGet('/dispositivos');
+
+export const getDispositivoById = (id) => apiGet(`/dispositivos/${id}`);
+
+export const createDispositivo = async (data) => {
+    try {
+        const response = await api.post('/dispositivos', data);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al crear dispositivo.'));
+    }
+};
+export const updateDispositivo = async (id, data) => {
+    try {
+        const response = await api.put(`/dispositivos/${id}`, data);
+        return response.data; // El controlador de C# devuelve el dispositivo actualizado
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al actualizar el dispositivo.'));
+    }
+};
+export const toggleDispositivoEstado = async (id, nuevoEstado) => {
+    try {
+        await api.patch(`/dispositivos/${id}/estado`, { estado: nuevoEstado });
+        return { id, estado: nuevoEstado };
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al cambiar estado del dispositivo.'));
+    }
+};
+export const deleteDispositivo = (id) => api.delete(`/dispositivos/${id}`).then(res => res.data);
+
+// ==============================================================================
+// Otros Dispositivos
+// ==============================================================================
+export const getOtrosDispositivosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
+    try {
+        const params = new URLSearchParams();
+
+        // Agregar parámetros de paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Agregar filtro de búsqueda por nombre
+        if (query?.trim()) {
+            params.append('query', query.trim());
+        }
+
+        // Agregar filtro por estado (el nuevo parámetro)
+        // Lo enviamos solo si tiene un valor que no sea vacío.
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        const url = `/otrosdispositivo/?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al obtener otros dispositivos paginados.'));
+    }
+};
+
+export const exportarOtrosDispositivos = async ({ query = "", estadoFiltro = "" } = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        if (query?.trim()) params.append('query', query.trim());
+
+        // Agregar filtro de estado al exportar
+        if (estadoFiltro?.trim() && estadoFiltro.toLocaleLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+        const url = `${BASE_URL}/otrosdispositivo/exportar?${params.toString()}`;
+
+        const response = await axios.get(
+            url,
+            {
+                responseType: 'blob',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+
+        // Crear un enlace temporal para descargar el archivo
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = urlBlob;
+        link.setAttribute('download', 'Proveedores_Exportados.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al exportar proveedores.'));
+    }
+};
+export const getOtrosDispositivos = () => apiGet('/otrosdispositivo');
+
+export const getOtrosDispositivoById = (id) => apiGet(`/otrosdispositivo/${id}`);
+
+export const createOtrosDispositivo = async (data) => {
+    try {
+        const response = await api.post('/otrosdispositivo', data);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al crear dispositivo.'));
+    }
+};
+export const updateOtrosDispositivo = async (id, data) => {
+    try {
+        const response = await api.put(`/otrosdispositivo/${id}`, data);
+        return response.data; // El controlador de C# devuelve el dispositivo actualizado
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al actualizar el dispositivo.'));
+    }
+};
+export const toggleOtrosDispositivoEstado = async (id, nuevoEstado) => {
+    try {
+        await api.patch(`/otrosdispositivo/${id}/estado`, { estado: nuevoEstado });
+        return { id, estado: nuevoEstado };
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al cambiar estado del dispositivo.'));
+    }
+};
+export const deleteOtrosDispositivo = (id) => api.delete(`/otrosdispositivo/${id}`).then(res => res.data);
 
 
 // ==========================

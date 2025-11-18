@@ -17,7 +17,7 @@ const menuConfig = [
     { label: 'Modelos', path: '/infraestructura/modelos', permiso: 'MODELO_LEER' },
     { label: 'Ubicaciones', path: '/infraestructura/ubicaciones', permiso: 'UBICACION_LEER' },
     { label: 'Dispositivos', path: '/infraestructura/dispositivos', permiso: 'DISPOSITIVO_LEER' },
-    { label: 'Otros Dispositivos', path: '/infraestructura/otros-dispositivos', permiso: 'OTROSDISPOSITIVO_LEER' },
+    { label: 'Otros Dispositivos', path: '/infraestructura/otrosdispositivo', permiso: 'OTROSDISPOSITIVO_LEER' },
 
     // 3. Recorridos
     { label: 'Consumibles', path: '/recorridos/consumibles', permiso: 'CONSUMIBLE_LEER' },
@@ -26,7 +26,7 @@ const menuConfig = [
 
     // 4. Incidencias
     { label: 'Incidencias', path: '/incidencia/incidencias', permiso: 'INCIDENCIA_LEER' },
-    { label: 'Estado Dispositivo', path: '/incidencia/estado-dispositivo', permiso: 'ESTADODISPOSITIVO_LEER' },
+    { label: 'Estado Dispositivo', path: '/incidencia/estadodispositivo', permiso: 'ESTADODISPOSITIVO_LEER' },
     { label: 'Resoluciones', path: '/incidencia/resoluciones', permiso: 'RESOLUCION_LEER' },
 
     // 5. Usuarios
@@ -84,10 +84,10 @@ const secciones = {
         '/infraestructura/modelos',
         '/infraestructura/ubicaciones',
         '/infraestructura/dispositivos',
-        '/infraestructura/otros-dispositivos',
+        '/infraestructura/otrosdispositivo',
     ],
     'Recorridos': ['/recorridos/consumibles', '/recorridos/consumos', '/recorridos/parametros'],
-    'Incidencias': ['/incidencia/incidencias', '/incidencia/estado-dispositivo', '/incidencia/resoluciones'],
+    'Incidencias': ['/incidencia/incidencias', '/incidencia/estadodispositivo', '/incidencia/resoluciones'],
     'Usuarios': ['/usuarios', '/usuarios/permisos', '/usuarios/asignacion'],
     'Auditoría': ['/auditoria'],
     'Reportes': ['/reportes'],
@@ -104,11 +104,11 @@ const iconMap = {
     '/recorridos/consumos': IconoRecorridos,
     '/recorridos/parametros': IconoRecorridos,
     '/incidencia/incidencias': IconoIncidencia,
-    '/incidencia/estado-dispositivo': IconoIncidencia,
+    '/incidencia/estadodispositivo': IconoIncidencia,
     '/incidencia/resoluciones': IconoIncidencia,
     '/infraestructura/contratos': IconoInfraestructura,
     '/infraestructura/dispositivos': IconoInfraestructura,
-    '/infraestructura/otros-dispositivos': IconoInfraestructura,
+    '/infraestructura/otrosdispositivo': IconoInfraestructura,
     '/infraestructura/sitios': IconoInfraestructura,
     '/infraestructura/ubicaciones': IconoInfraestructura,
     '/infraestructura/marcas': IconoInfraestructura,

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-    getCategoriasPaginadas, deleteCategoria, toggleCategoriaEstado, exportarCategorias
-} from '../../../services/api';
+import { getCategoriasPaginadas, deleteCategoria, toggleCategoriaEstado, exportarCategorias } from '../../../services/api';
 import CategoriaForm from './CategoriaForm';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';

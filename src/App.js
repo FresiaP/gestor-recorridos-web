@@ -1,8 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Unauthorized from "./pages/shared/Unauthorized";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
 import Home from "./pages/dashboard/Home";
-import Usuarios from "./pages/usuarios/Usuarios";
+import UsuarioPage from "./pages/usuarios/UsuarioPage";
+import PermisosPage from "./pages/usuarios/PermisosPage";
+import AsignacionPermisoPage from "./pages/usuarios/AsignacionPermisoPage";
 import Configuracion from "./pages/configuracion/Configuracion";
 import Login from "./pages/usuarios/Login";
 import CategoriasPage from './pages/infraestructura/Categorias/CategoriaPage';
@@ -11,6 +14,9 @@ import ProveedorPage from './pages/infraestructura/Proveedores/ProveedorPage';
 import SitioPage from './pages/infraestructura/Sitios/SitioPage';
 import ContratoPage from './pages/infraestructura/Contratos/ContratoPage';
 import ModeloPage from './pages/infraestructura/Modelos/ModeloPage';
+import UbicacionPage from './pages/infraestructura/Ubicaciones/UbicacionPage';
+import DispositivoPage from './pages/infraestructura/Dispositivos/DispositivoPage';
+import OtrosDispositivoPage from './pages/infraestructura/OtrosDispositivos/OtrosDispositivoPage';
 
 function App() {
   return (
@@ -20,6 +26,7 @@ function App() {
         {/*--------------------------------------------------------------------------------------------*/}
 
         <Route path="/login" element={<Login />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Rutas protegidas */}
         {/* -------------------------------------------------------------------------------------------*/}
@@ -40,16 +47,6 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout pageTitle="Inicio" activePath="/home">
                 <Home />
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/usuarios"
-          element={
-            <ProtectedRoute permisoRequerido="GESTION_USUARIOS">
-              <DashboardLayout pageTitle="Usuarios" activePath="/usuarios">
-                <Usuarios />
               </DashboardLayout>
             </ProtectedRoute>
           }
@@ -132,7 +129,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {/* 6. RUTA PARA CONTRATOS */}
+        {/* 6. RUTA PARA MODELOS */}
         {/* ---------------------------------------------------------------------------------------------------*/}
         <Route
           path="/infraestructura/modelos"
@@ -144,6 +141,79 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* 6. RUTA PARA UBICACIONES */}
+        {/* ---------------------------------------------------------------------------------------------------*/}
+        <Route
+          path="/infraestructura/ubicaciones"
+          element={
+            <ProtectedRoute permisoRequerido="UBICACION_LEER">
+              <DashboardLayout pageTitle="Ubicaciones" activePath="/infraestructura/ubicaciones">
+                <UbicacionPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* 7. RUTA PARA DISPOSITIVOS */}
+        {/* ---------------------------------------------------------------------------------------------------*/}
+        <Route
+          path="/infraestructura/dispositivos"
+          element={
+            <ProtectedRoute permisoRequerido="DISPOSITIVO_LEER">
+              <DashboardLayout pageTitle="Dispositivos" activePath="/infraestructura/dispositivos">
+                <DispositivoPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* 7. RUTA PARA OTROS DISPOSITIVOS */}
+        {/* ---------------------------------------------------------------------------------------------------*/}
+        <Route
+          path="/infraestructura/otrosdispositivo"
+          element={
+            <ProtectedRoute permisoRequerido="OTROSDISPOSITIVO_LEER">
+              <DashboardLayout pageTitle="Otros Dispositivos" activePath="/infraestructura/otrosdispositivo">
+                <OtrosDispositivoPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* 8. Ruta de Usuarios */}
+        <Route
+          path="/usuarios"
+          element={
+            <ProtectedRoute permisoRequerido="USUARIO_LEER">
+              <DashboardLayout pageTitle="Usuarios" activePath="/usuarios">
+                <UsuarioPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 9. Ruta de Permisos */}
+        <Route
+          path="/permisos"
+          element={
+            <ProtectedRoute permisoRequerido="PERMISO_LEER">
+              <DashboardLayout pageTitle="Permisos" activePath="/permisos">
+                <PermisosPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 10. Ruta de Asignación de Permisos */}
+        <Route
+          path="/usuarios/asignar-permisos"
+          element={
+            <ProtectedRoute permisoRequerido="PERMISOS_ASIGNAR">
+              <DashboardLayout pageTitle="Asignación de Permisos" activePath="/usuarios/asignar-permisos">
+                <AsignacionPermisoPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+
 
       </Routes>
     </Router>

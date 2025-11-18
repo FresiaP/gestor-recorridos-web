@@ -171,21 +171,8 @@ const ContratosPage = () => {
 
 
     // --- Renderizado Condicional ---
-    if (cargando) {
-        return (
-            <div className="p-12 text-gray-500">
-                Cargando contratos...
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">
-                Error: {error}
-            </div>
-        );
-    }
+    if (cargando) { return (<div className="p-12 text-gray-500">Cargando contratos...</div>); }
+    if (error) { return (<div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>); }
 
     return (
         <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
