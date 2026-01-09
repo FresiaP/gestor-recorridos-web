@@ -2,38 +2,35 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarDispositivosSelect,
+    buscarUbicacionesSelect,
     buscarUsuarioSelect,
-    createConsumible,
-    getDispositivoById,
+    createParametroAmbiente,
+    getUbicacionesById,
     getUsuarioById,
-    updateConsumible
+    updateParametroAmbiente
 } from '../../../services/api';
 
-const ConsumibleForm = ({ consumible, onClose }) => {
-    const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
+const ParametroForm = ({ parametro, onClose }) => {
+    const [OpcionesUbicacion, setOpcionesUbicacion] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
-    // 1. ESTADO INICIAL: Usamos el string '0' como valor inicial seguro
     const [form, setForm] = useState({
-        idDispositivo: '',
+        idUbicacion: '',
         idUsuario: '',
-        fechaLectura: '',
-        cartuchoAmarillo: '0',
-        cartuchoMagenta: '0',
-        cartuchoCian: '0',
-        cartuchoNegro: '0',
-        contenedorResiduos: '0',
+        fechaRecorrido: '',
+        temperatura: '',
+        humedad: '',
+        comentarios: ''
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!consumible;
+    const isEditing = !!parametro;
 
     // Carga de datos si estamos editando
     useEffect(() => {
-        if (consumible) {
+        if (parametro) {
             const formatDate = (fecha) => {
                 if (!fecha) return '';
                 const date = new Date(fecha);
@@ -42,24 +39,22 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 
             setForm({
-                idDispositivo: consumible.idDispositivo?.toString() ?? '',
-                idUsuario: consumible.idUsuario?.toString() ?? '',
-                fechaLectura: formatDate(consumible.fechaLectura) ?? '',
-                cartuchoAmarillo: consumible.cartuchoAmarillo?.toString() ?? '0',
-                cartuchoMagenta: consumible.cartuchoMagenta?.toString() ?? '0',
-                cartuchoCian: consumible.cartuchoCian?.toString() ?? '0',
-                cartuchoNegro: consumible.cartuchoNegro?.toString() ?? '0',
-                contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0'
+                idUbicacion: parametro.idUbicacion?.toString() ?? '',
+                idUsuario: parametro.idUsuario?.toString() ?? '',
+                fechaRecorrido: formatDate(parametro.fechaRecorrido) ?? '',
+                temperatura: parametro.temperatura?.toString() ?? '0',
+                humedad: parametro.humedad?.toString() ?? '0',
+                comentarios: parametro.comentarios?.toString() ?? ''
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [dispositivo, usuario] = await Promise.all([
-                        getDispositivoById(consumible.idDispositivo),
-                        getUsuarioById(consumible.idUsuario)
+                    const [ubicacion, usuario] = await Promise.all([
+                        getUbicacionesById(parametro.idUbicacion),
+                        getUsuarioById(parametro.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
+                    setOpcionesUbicacion([{ value: ubicacion.idUbicacion, label: ubicacion.descripcion }]);
                     setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
@@ -68,7 +63,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [consumible]);
+    }, [parametro]);
 
 
     const handleChange = (e) => {
@@ -80,7 +75,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     const safeParseInt = (value) => {
         const trimmedValue = value?.trim();
         if (trimmedValue === '' || trimmedValue === null || trimmedValue === undefined) {
-            return 0; // Monocromática: se envía 0 si el campo está vacío.
+            return 0;
         }
         return parseInt(trimmedValue, 10) || 0; // Parsea a int o devuelve 0 si no es un número.
     };
@@ -88,45 +83,41 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
-        if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
+        if (!form.idUbicacion) return setError("Debe seleccionar una ubicación.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
-        if (!form.fechaLectura.trim()) return setError("La fecha de lectura no puede estar vacía.");
-
-        // La validación de cartuchos de color se relaja para permitir el envío de "" (vacío) o "0"
+        if (!form.fechaRecorrido.trim()) return setError("La fecha de recorrido no puede estar vacía.");
 
         setCargando(true);
         setError(null);
         setMensajeExito(null);
 
-        // PAYLOAD: Usamos la función safeParseInt para los campos numéricos opcionales.
         const payload = {
-            idDispositivo: safeParseInt(form.idDispositivo),
-            idUsuario: safeParseInt(form.idUsuario),
-            fechaLectura: form.fechaLectura,
-            cartuchoAmarillo: safeParseInt(form.cartuchoAmarillo),
-            cartuchoMagenta: safeParseInt(form.cartuchoMagenta),
-            cartuchoCian: safeParseInt(form.cartuchoCian),
-            cartuchoNegro: safeParseInt(form.cartuchoNegro),
-            contenedorResiduos: safeParseInt(form.contenedorResiduos) // ContenedorResiduos SIEMPRE debe ser un número (o 0).
+            idUbicacion: parseInt(form.idUbicacion),
+            idUsuario: parseInt(form.idUsuario),
+            fechaRecorrido: new Date(form.fechaRecorrido).toISOString(),
+            temperatura: form.temperatura === '' ? 0 : parseFloat(form.temperatura),
+            humedad: form.humedad === '' ? 0 : parseFloat(form.humedad),
+            comentarios: form.comentarios || ""
         };
 
         try {
             if (isEditing) {
-                await updateConsumible(consumible.idConsumible, payload);
+                // 👇 Usa idParametroAmbiente, no idParamAmbiente
+                await updateParametroAmbiente(parametro.idParametroAmbiente, payload);
             } else {
-                await createConsumible(payload);
+                await createParametroAmbiente(payload);
             }
 
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumibles.';
+            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de parámetro.';
             setError(errorMessage);
         } finally {
             setCargando(false);
         }
     };
+
 
     //=============================================================================================
     //Renderizado
@@ -135,7 +126,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Consumible' : 'Crear Nuevo Registro de Consumible'}
+                {isEditing ? 'Editar Parámetro' : 'Crear Nuevo Registro de Parámetro'}
             </h2>
 
             {error && (
@@ -153,31 +144,32 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             <div className="mb-4">
                 <div className="mb-4">
-                    {/* Select Dispositivo */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
+                    {/* Select Ubicación */}
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Ubicación Asociada</label>
                     <AsyncSelect
                         cacheOptions
                         defaultOptions
                         loadOptions={async (inputValue) => {
-                            const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                            setOpcionesDispositivo(opciones);
+                            const opciones = await buscarUbicacionesSelect(inputValue, 1, 50);
+                            setOpcionesUbicacion(opciones);
                             return opciones;
                         }}
                         value={
-                            form.idDispositivo
-                                ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
+                            form.idUbicacion
+                                ? OpcionesUbicacion.find((o) => o.value === safeParseInt(form.idUbicacion))
+                                || { value: safeParseInt(form.idUbicacion), label: parametro?.descripcionUbicacion }
                                 : null
                         }
                         onChange={(opcion) => {
-                            setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
-                            setOpcionesDispositivo((prev) => {
+                            setForm((prev) => ({ ...prev, idUbicacion: opcion?.value?.toString() ?? '' }));
+                            setOpcionesUbicacion((prev) => {
                                 if (opcion && !prev.some(o => o.value === opcion.value)) {
                                     return [...prev, opcion];
                                 }
                                 return prev;
                             });
                         }}
-                        placeholder="Buscar y seleccionar dispositivo..."
+                        placeholder="Buscar y seleccionar ubicacion..."
                         isClearable
                         className="mb-4"
                     />
@@ -194,7 +186,8 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         }}
                         value={
                             form.idUsuario
-                                ? OpcionesUsuario.find((o) => o.value === safeParseInt(form.idUsuario)) || null
+                                ? OpcionesUsuario.find((o) => o.value === safeParseInt(form.idUsuario))
+                                || { value: safeParseInt(form.idUsuario), label: parametro?.nombreApellido }
                                 : null
                         }
                         onChange={(opcion) => {
@@ -213,77 +206,48 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 </div>
 
                 {/* Input Fecha Lectura */}
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Lectura</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Recorrido</label>
                 <input
                     type="date"
-                    name="fechaLectura"
-                    value={form.fechaLectura}
+                    name="fechaRecorrido"
+                    value={form.fechaRecorrido}
                     onChange={handleChange}
                     required
                     className="w-full border rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Amarillo */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoAmarillo">C. Amarillo (Opcional)</label>
+                {/* Input temperatura */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="temperatura">Temperatura</label>
                 <input
-                    id="cartuchoAmarillo"
+                    id="temperatura"
                     type="number"
-                    name="cartuchoAmarillo"
-                    value={form.cartuchoAmarillo}
+                    name="temperatura"
+                    value={form.temperatura}
                     onChange={handleChange}
-                    // Quité 'required' para permitir dejar vacío o '0'
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Magenta */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoMagenta">C. Magenta (Opcional)</label>
+                {/* Input humedad */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="humedad">Humedad</label>
                 <input
-                    id="cartuchoMagenta"
+                    id="humedad"
                     type="number"
-                    name="cartuchoMagenta"
-                    value={form.cartuchoMagenta}
+                    name="humedad"
+                    value={form.humedad}
                     onChange={handleChange}
-                    // Quité 'required'
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Cian */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoCian">C. Cian (Opcional)</label>
+                {/* Input Comentarios */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="comentarios">Comentarios</label>
                 <input
-                    id="cartuchoCian"
-                    type="number"
-                    name="cartuchoCian"
-                    value={form.cartuchoCian}
+                    id="comentarios"
+                    type="text"
+                    name="comentarios"
+                    value={form.comentarios}
                     onChange={handleChange}
-                    // Quité 'required'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Cartucho Negro */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoNegro">C. Negro</label>
-                <input
-                    id="cartuchoNegro"
-                    type="number"
-                    name="cartuchoNegro"
-                    value={form.cartuchoNegro}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Contenedor Residuos */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contenedorResiduos">C. Residuos</label>
-                <input
-                    id="contenedorResiduos"
-                    type="number"
-                    name="contenedorResiduos"
-                    value={form.contenedorResiduos}
-                    onChange={handleChange}
-                    required
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
@@ -313,4 +277,4 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 };
 
-export default ConsumibleForm;
+export default ParametroForm;

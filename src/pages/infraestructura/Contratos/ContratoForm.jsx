@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    createContrato,
-    updateContrato,
+    buscarEstadoContratosSelect,
     buscarProveedoresSelect,
-    getProveedorById
-
+    createContrato,
+    getProveedorById,
+    updateContrato
 } from '../../../services/api';
 
 const ContratoForm = ({ contrato, onClose }) => {
@@ -17,7 +17,7 @@ const ContratoForm = ({ contrato, onClose }) => {
         fechaInicio: '',
         fechaFin: '',
         detalles: '',
-        estado: true,
+        nombreEstado: '',
         detalleImpresion: {
             bolsonImpresionesCopiasBw: '',
             bolsonImpresionesCopiasColor: '',
@@ -44,7 +44,7 @@ const ContratoForm = ({ contrato, onClose }) => {
                 bolsonImpresionesCopiasColor: contrato.bolsonImpresionesCopiasColor?.toString() || '',
                 costoExcedenteBw: contrato.costoExcedenteBw?.toString() || '',
                 costoExcedenteColor: contrato.costoExcedenteColor?.toString() || '',
-                estado: contrato.estado ?? true
+                nombreEstado: contrato.nombreEstado?.toString()
             });
 
             const cargarDatosForaneos = async () => {
@@ -79,14 +79,13 @@ const ContratoForm = ({ contrato, onClose }) => {
                 detalles: contrato.detalles || '',
                 fechaInicio: formatDate(contrato.fechaInicio),
                 fechaFin: formatDate(contrato.fechaFin),
-                estado: contrato.estado ?? true,
                 detalleImpresion: contrato.detalleImpresion || {
                     bolsonImpresionesCopiasBw: '',
                     bolsonImpresionesCopiasColor: '',
                     costoExcedenteBw: '',
                     costoExcedenteColor: '',
-
-                }
+                },
+                nombreEstado: contrato.nombreEstado || ''
             });
         }
     }, [contrato]);
@@ -136,7 +135,7 @@ const ContratoForm = ({ contrato, onClose }) => {
             montoContrato: parseFloat(form.montoContrato),
             fechaInicio: form.fechaInicio,
             fechaFin: form.fechaFin,
-            estado: form.estado ?? false,
+            nombreEstado: form.nombreEstado,
             detalleImpresion: {
                 bolsonImpresionesCopiasBw: parseInt(form.detalleImpresion.bolsonImpresionesCopiasBw || 0),
                 bolsonImpresionesCopiasColor: parseInt(form.detalleImpresion.bolsonImpresionesCopiasColor || 0),
@@ -328,23 +327,27 @@ const ContratoForm = ({ contrato, onClose }) => {
                 </div>
             </div>
 
-            {/* Estado (solo en edición) */}
-            {isEditing && (
-                <div className="mt-4 flex items-center">
-                    <input
-                        type="checkbox"
-                        checked={form.estado}
-                        onChange={(e) => setForm(prev => ({ ...prev, estado: e.target.checked }))}
-                        className="mr-2"
-                    />
-                    <label className="text-sm text-gray-700 font-bold">
-                        Contrato Activo
-                        <span className="text-gray-500 text-xs ml-2">
-                            ({form.estado ? 'Visible' : 'Oculto/Desactivado'})
-                        </span>
-                    </label>
-                </div>
-            )}
+            {/* Estado del contrato (solo en edición) */}
+            <div className="mt-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                    Estado del Contrato
+                </label>
+                <AsyncSelect
+                    cacheOptions
+                    defaultOptions
+                    loadOptions={buscarEstadoContratosSelect}
+                    value={
+                        form.nombreEstado
+                            ? { value: form.nombreEstado, label: form.nombreEstado }
+                            : null
+                    }
+                    onChange={(opcion) =>
+                        setForm((prev) => ({ ...prev, nombreEstado: opcion?.label || '' }))
+                    }
+                    placeholder="Seleccionar estado del contrato..."
+                    isClearable
+                    className="mb-4" />
+            </div>
 
             {/* Botones */}
             <div className="flex items-center justify-between mt-6">

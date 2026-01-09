@@ -1,32 +1,28 @@
-// src/components/shared/ProtectedRoute.jsx (CORREGIDO)
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { getUsuarioActual } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, permisoRequerido }) => {
-    const usuario = getUsuarioActual();
+    const { usuario, cargando, tienePermiso } = useAuth();
 
+    // 1. Muestra un estado de carga mientras se verifica la autenticación inicial
+    if (cargando) {
+        return <div className="flex justify-center items-center h-screen bg-gray-100">Cargando sesión...</div>;
+    }
+
+    // 2. Si el usuario no está logueado, redirige al Login
     if (!usuario) {
         return <Navigate to="/login" replace />;
     }
 
-    if (permisoRequerido) {
-
-        // 1. BYPASS para ADMINISTRADORES
-        if (usuario.rol === "USUARIO_ADMIN") {
-            return children;
-        }
-
-        //  2. VERIFICACIÓN FINAL: Compara la cadena requerida con el array de cadenas 
-        // ¡No se necesita Number()! Ambos son cadenas de texto.
-        if (!usuario.permisos || !usuario.permisos.includes(Number(permisoRequerido))) {
-            // Redirección si la comprobación falla
-            return <Navigate to="/unauthorized" replace />;
-        }
-
+    // 3. Verifica si el usuario tiene el permiso necesario (usa la función corregida)
+    if (tienePermiso(permisoRequerido)) {
+        // Si tiene el permiso o si no se requiere un permiso específico ([]), renderiza el componente hijo
+        return children;
     }
 
-    return children;
+    // 4. Si el usuario está logueado pero no tiene el permiso, redirige a No Autorizado
+    return <Navigate to="/unauthorized" replace />;
 };
 
 export default ProtectedRoute;

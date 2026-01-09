@@ -1,28 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    createDispositivo,
-    updateDispositivo,
     buscarCategoriasSelect,
-    buscarUbicacionesSelect,
-    buscarModelosSelect,
     buscarContratosSelect,
+    buscarModelosSelect,
+    buscarTiposSelect,
+    buscarUbicacionesSelect,
+    createDispositivo,
     getCategoriaById,
-    getModeloById,
-    getUbicacionesById,
     getContratoById,
+    getModeloById,
+    getTipoById,
+    getUbicacionesById,
+    updateDispositivo,
 } from '../../../services/api';
 
 const DispositivoForm = ({ dispositivo, onClose }) => {
     const [OpcionesCategoria, setOpcionesCategoria] = useState([]);
+    const [OpcionesTipo, setOpcionesTipo] = useState([]);
     const [OpcionesModelo, setOpcionesModelo] = useState([]);
     const [OpcionesUbicacion, setOpcionesUbicacion] = useState([]);
     const [OpcionesContrato, setOpcionesContrato] = useState([]);
     const [form, setForm] = useState({
         nombre: '',
         serie: '',
-        tipo: '',
         idCategoria: '',
+        idTipo: '',
         idModelo: '',
         idUbicacion: '',
         idContrato: '',
@@ -39,25 +42,27 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
         if (dispositivo) {
             setForm({
                 idCategoria: dispositivo.idCategoria?.toString() || '',
+                idTipo: dispositivo.idTipo?.toString() || '',
                 idModelo: dispositivo.idModelo?.toString() || '',
                 idUbicacion: dispositivo.idUbicacion?.toString() || '',
                 idContrato: dispositivo.idContrato?.toString() || '',
                 nombre: dispositivo.nombre || '',
                 serie: dispositivo.serie?.toString() || '',
-                tipo: dispositivo.tipo?.toString() || '',
                 estado: dispositivo.estado ?? true
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [categoria, modelo, ubicacion, contrato] = await Promise.all([
+                    const [categoria, tipo, modelo, ubicacion, contrato] = await Promise.all([
                         getCategoriaById(dispositivo.idCategoria),
+                        getTipoById(dispositivo.idTipo),
                         getModeloById(dispositivo.idModelo),
                         getUbicacionesById(dispositivo.idUbicacion),
                         getContratoById(dispositivo.idContrato)
                     ]);
 
                     setOpcionesCategoria([{ value: categoria.idCategoria, label: categoria.descripcion }]);
+                    setOpcionesTipo([{ value: tipo.idTipo, label: tipo.nombre }]);
                     setOpcionesModelo([{ value: modelo.idModelo, label: modelo.descripcion }]);
                     setOpcionesUbicacion([{ value: ubicacion.idUbicacion, label: ubicacion.descripcion }]);
                     setOpcionesContrato([{ value: contrato.idContrato, label: contrato.numeroContrato }]);
@@ -77,12 +82,12 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
         if (dispositivo) {
             setForm({
                 idCategoria: dispositivo.idCategoria?.toString() || '',
+                idTipo: dispositivo.idTipo?.toString() || '',
                 idModelo: dispositivo.idModelo?.toString() || '',
                 idUbicacion: dispositivo.idUbicacion?.toString() || '',
                 idContrato: dispositivo.idContrato?.toString() || '',
                 nombre: dispositivo.nombre || '',
                 serie: dispositivo.serie?.toString() || '',
-                tipo: dispositivo.tipo?.toString() || '',
                 estado: dispositivo.estado ?? true
             });
         }
@@ -101,7 +106,7 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
         if (!form.nombre.trim()) return setError("El nombre del dispositivo no puede estar vacío.");
         if (!form.serie.trim()) return setError("El número de serie no puede estar vacío.");
-        if (!form.tipo.trim()) return setError("El tipo del dispositivo no puede estar vacío.");
+        if (!form.idTipo) return setError("Debe seleccionar el tipo.");
         if (!form.idCategoria) return setError("Debe seleccionar una categoría.");
         if (!form.idModelo) return setError("Debe seleccionar un modelo.");
         if (!form.idUbicacion) return setError("Debe seleccionar una ubicación.");
@@ -114,12 +119,12 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
         const payload = {
             ...form,
             idCategoria: parseInt(form.idCategoria),
+            idTipo: parseInt(form.idTipo),
             idModelo: parseInt(form.idModelo),
             idUbicacion: parseInt(form.idUbicacion),
             idContrato: parseInt(form.idContrato),
             nombre: form.nombre.trim(),
             serie: form.serie.trim(),
-            tipo: form.tipo.trim(),
             estado: form.estado ?? true
         };
 
@@ -187,17 +192,6 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                     className="w-full border border-gray-300 rounded px-3 py-2"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="tipo">Tipo</label>
-                <input
-                    id="tipo"
-                    type="text"
-                    name="tipo"
-                    value={form.tipo}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                />
             </div>
 
             <div className="mb-4">
@@ -230,6 +224,39 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                         });
                     }}
                     placeholder="Buscar y seleccionar categoría..."
+                    isClearable
+                    className="mb-4"
+                />
+
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="tipo">Tipo Asociado</label>
+                <AsyncSelect
+                    cacheOptions
+                    defaultOptions
+                    loadOptions={async (inputValue) => {
+                        const opciones = await buscarTiposSelect(inputValue, 1, 50);
+                        setOpcionesTipo(opciones);
+                        return opciones;
+                    }}
+                    value={
+                        form.idTipo
+                            ? OpcionesTipo.find((o) => o.value === parseInt(form.idTipo)) || {
+                                value: form.idTipo
+                                    ? OpcionesTipo.find((o) => o.value === parseInt(form.idTipo)) || null
+                                    : null
+                            }
+                            : null
+                    }
+                    onChange={(opcion) => {
+                        setForm((prev) => ({ ...prev, idTipo: opcion?.value || '' }));
+                        setOpcionesTipo((prev) => {
+                            // si no existe en la lista, la agregamos
+                            if (opcion && !prev.some(o => o.value === opcion.value)) {
+                                return [...prev, opcion];
+                            }
+                            return prev;
+                        });
+                    }}
+                    placeholder="Buscar y seleccionar tipo..."
                     isClearable
                     className="mb-4"
                 />

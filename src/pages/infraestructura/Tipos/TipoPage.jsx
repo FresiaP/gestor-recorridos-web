@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
-import { deleteSitio, exportarSitios, getSitiosPaginados, toggleSitioEstado } from '../../../services/api';
-import SitioForm from './SitioForm';
+import { deleteTipo, exportarTipos, getTiposPaginados, toggleTipoEstado } from '../../../services/api';
+import TipoForm from './TipoForm';
 
-const SitioPage = () => {
+const TipoPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [sitioEditando, setSitioEditando] = useState(null);
+    const [tipoEditando, setTipoEditando] = useState(null);
 
     const {
-        items: sitios,
+        items: tipos,
         cargando,
         error,
         searchTerm,
@@ -26,71 +26,67 @@ const SitioPage = () => {
         handleNextPage,
         handlePrevPage
     } = useFiltroPaginado({
-        fetchFunction: getSitiosPaginados,
-        exportFunction: exportarSitios
+        fetchFunction: getTiposPaginados,
+        exportFunction: exportarTipos
     });
 
     const handleCreate = () => {
-        setSitioEditando(null);
+        setTipoEditando(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (sitio) => {
-        setSitioEditando(sitio);
+    const handleEdit = (tipo) => {
+        setTipoEditando(tipo);
         setIsModalOpen(true);
     };
 
-    const handleToggleEstado = async (sitio) => {
-        const nuevoEstado = !sitio.estado;
+    const handleToggleEstado = async (tipo) => {
+        const nuevoEstado = !tipo.estado;
         const accion = nuevoEstado ? 'activar' : 'desactivar';
 
-        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el sitio "${sitio.descripcion}"?`)) {
-            return;
-        }
+        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el tipo "${tipo.nombre}"?`)) return;
 
         try {
-            await toggleSitioEstado(sitio.idSitio, nuevoEstado);
-            alert(`Sitio "${sitio.descripcion}" ${accion}do con éxito.`);
+            await toggleTipoEstado(tipo.idTipo, nuevoEstado);
+            alert(`Tipo "${tipo.nombre}" ${accion}da con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al ${accion}: ${err.message}`);
         }
     };
+    const handleDelete = async (id, nombre) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el tipo "${nombre}"? Esta acción es irreversible.`)) return;
 
-    const handleDelete = async (id, descripcion) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el sitio "${descripcion}"? Esta acción es irreversible.`)) {
-            return;
-        }
         try {
-            await deleteSitio(id);
-            alert(`Sitio "${descripcion}" eliminado con éxito.`);
+            await deleteTipo(id);
+            alert(`Tipo "${nombre}" eliminada con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (sitioActualizado = false) => {
+    const handleCloseModal = (tipoActualizado = false) => {
         setIsModalOpen(false);
-        setSitioEditando(null);
-        if (sitioActualizado) {
-            fetchData(paginaActual);
-        }
+        setTipoEditando(null);
+        if (tipoActualizado) fetchData(paginaActual);
     };
 
+
     // --- Renderizado Condicional ---
-    if (cargando) return <div className="p-6 text-gray-500">Cargando sitios...</div>;
+    if (cargando) return <div className="p-12 text-gray-500">Cargando tipos...</div>;
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
-        <div className="p-12">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Gestión de Sitios</h1>
+        <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Tipos</h1>
             <div className="flex justify-between items-center">
+
                 <button
                     onClick={handleCreate}
-                    className="bg-blue-700 hover:bg-white-700 text-white font-bold py-2 px-4 rounded mb-4 shadow transition duration-150"
+                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
                 >
-                    ➕ Crear Nuevo Sitio
+                    ➕ Crear Nuevo Tipo
                 </button>
 
                 <div className="flex items-center space-x-4">
@@ -98,7 +94,7 @@ const SitioPage = () => {
                         value={searchTerm}
                         onDebouncedChange={(val) => setSearchTerm(val)}
                         disabled={cargando}
-                        placeholder="Buscar por Descripción..."
+                        placeholder="Buscar por Nombre..."
                     />
 
                     {/* Control de Selección de Estado */}
@@ -134,44 +130,46 @@ const SitioPage = () => {
                         <option value={50}>50 por página</option>
                     </select>
                 </div>
+
             </div>
 
-            <div className="bg-white shadow overflow-x-auto rounded-lg">
+            {/* TABLA DE DATOS */}
+            <div className="bg-white shadow overflow-x-auto sm:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-200">
-                        {sitios.map((sitio) => (
-                            <tr key={sitio.idSitio}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sitio.idSitio}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sitio.descripcion}</td>
+                        {tipos.map((tipo) => (
+                            <tr key={tipo.idTipo}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tipo.idTipo}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tipo.nombre}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${sitio.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {sitio.estado ? 'Activa' : 'Inactiva'}
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tipo.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        {tipo.estado ? 'Activa' : 'Inactiva'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
-                                        onClick={() => handleEdit(sitio)}
+                                        onClick={() => handleEdit(tipo)}
                                         className="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150"
                                     >
                                         Editar
                                     </button>
                                     <button
-                                        onClick={() => handleToggleEstado(sitio)}
-                                        className={`mr-3 transition duration-150 ${sitio.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                        title={sitio.estado ? 'Desactivar Sitio' : 'Activar Sitio'}
+                                        onClick={() => handleToggleEstado(tipo)}
+                                        className={`mr-3 transition duration-150 ${tipo.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                                        title={tipo.estado ? 'Desactivar Categoría (Soft Delete)' : 'Activar Tipo'}
                                     >
-                                        {sitio.estado ? 'Desactivar' : 'Activar'}
+                                        {tipo.estado ? 'Desactivar' : 'Activar'}
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(sitio.idSitio, sitio.descripcion)}
+                                        onClick={() => handleDelete(tipo.idTipo, tipo.nombre)}
                                         className="text-red-600 hover:text-red-900 transition duration-150"
                                     >
                                         Eliminar
@@ -179,10 +177,10 @@ const SitioPage = () => {
                                 </td>
                             </tr>
                         ))}
-                        {sitios.length === 0 && !cargando && (
+                        {tipos.length === 0 && !cargando && (
                             <tr>
                                 <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                                    No se encontraron sitios.
+                                    No se encontraron tipos.
                                 </td>
                             </tr>
                         )}
@@ -191,13 +189,13 @@ const SitioPage = () => {
             </div>
 
             {/* CONTROLES DE PAGINACIÓN */}
-            <div className="flex justify-center items-center mt-6 p-4 border-t border-gray-200">
+            <div className="flex justify-center items-center mt-6 p-4 border-t border-gray-200 space-x-1 flex-wrap">
                 <button
                     onClick={handlePrevPage}
                     disabled={paginaActual === 1 || cargando}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-l disabled:opacity-50 transition duration-150"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded-l disabled:opacity-50 transition duration-150"
                 >
-                    &lt; Anterior
+                    &lt;
                 </button>
 
                 {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
@@ -216,9 +214,9 @@ const SitioPage = () => {
                 <button
                     onClick={handleNextPage}
                     disabled={paginaActual === totalPaginas || cargando}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-r disabled:opacity-50 transition duration-150"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-3 rounded-r disabled:opacity-50 transition duration-150"
                 >
-                    Siguiente &gt;
+                    &gt;
                 </button>
             </div>
 
@@ -226,8 +224,8 @@ const SitioPage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-center backdrop-blur-sm transition duration-300">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-lg w-full transform transition duration-300 scale-100 opacity-100">
-                        <SitioForm
-                            sitio={sitioEditando}
+                        <TipoForm
+                            tipo={tipoEditando}
                             onClose={handleCloseModal}
                         />
                     </div>
@@ -237,5 +235,4 @@ const SitioPage = () => {
     );
 };
 
-export default SitioPage;
-
+export default TipoPage;

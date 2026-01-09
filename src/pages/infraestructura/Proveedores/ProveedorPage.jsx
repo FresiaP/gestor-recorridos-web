@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { getProveedoresPaginadas, deleteProveedor, toggleProveedorEstado, exportarProveedores } from '../../../services/api';
-import ProveedorForm from './ProveedorForm';
+import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
+import { deleteProveedor, exportarProveedores, getProveedoresPaginadas, toggleProveedorEstado } from '../../../services/api';
+import ProveedorForm from './ProveedorForm';
 
 const ProveedoresPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,7 +135,7 @@ const ProveedoresPage = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-4">
+            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-4">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>

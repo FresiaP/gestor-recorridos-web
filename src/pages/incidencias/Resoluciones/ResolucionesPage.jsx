@@ -2,17 +2,20 @@ import { Autocomplete, TextField } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useCallback, useEffect, useState } from 'react';
+import AsyncSelect from 'react-select/async';
 import {
     buscarDispositivosSelect,
+    buscarIncidenciasSelect,
     buscarUsuarioSelect,
-    deleteConsumible,
-    exportarConsumibles,
-    getConsumiblesPaginados
+    deleteResolucion,
+    exportarResoluciones,
+    getResolucionesPaginadas,
+    reasignarResolucion
 } from '../../../services/api';
-import ConsumibleForm from './ConsumibleForm';
+import ResolucionesForm from './ResolucionesForm';
 
-const ConsumiblePage = () => {
-    const [consumibles, setConsumibles] = useState([]);
+const ResolucionPage = () => {
+    const [resoluciones, setResoluciones] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
 
@@ -30,8 +33,14 @@ const ConsumiblePage = () => {
     const [tamanoPagina, setTamanoPagina] = useState(10);
     const [totalPaginas, setTotalPaginas] = useState(1);
 
+    // modal Crear / editar
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [consumibleEditando, setConsumibleEditando] = useState(null);
+    const [ResolucionEditando, setResolucionEditando] = useState(null);
+
+    // modal reasignar
+    const [isReasignarOpen, setIsReasignarOpen] = useState(false);
+    const [ResolucionReasignando, setResolucionReasignando] = useState(null);
+    const [nuevaIncidencia, setNuevaIncidencia] = useState(null);
 
     // 1. EFECTO: Cargar la lista de opciones (Dispositivo vs Usuario)
     useEffect(() => {
@@ -56,7 +65,7 @@ const ConsumiblePage = () => {
 
     // 2. FUNCIÓN DE BÚSQUEDA PRINCIPAL (memoizada)
     // Se ejecuta con los filtros actuales
-    const fetchConsumible = useCallback(async (page) => {
+    const fetchResolucion = useCallback(async (page) => {
         setCargando(true);
         setError(null);
         try {
@@ -65,7 +74,7 @@ const ConsumiblePage = () => {
             const fechaFinParam = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
             const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
 
-            const data = await getConsumiblesPaginados(
+            const data = await getResolucionesPaginadas(
                 page,
                 tamanoPagina,
                 terminoBusqueda,
@@ -73,10 +82,10 @@ const ConsumiblePage = () => {
                 fechaFinParam,
             );
 
-            setConsumibles(Array.isArray(data.datos) ? data.datos : []);
+            setResoluciones(Array.isArray(data.datos) ? data.datos : []);
             setTotalPaginas(data.totalPaginas || 1);
         } catch (err) {
-            setError(err.message || 'Fallo al cargar los consumibles paginados.');
+            setError(err.message || 'Fallo al cargar los resoluciones paginadas.');
         } finally {
             setCargando(false);
         }
@@ -86,8 +95,8 @@ const ConsumiblePage = () => {
     // Se ejecuta cuando cambia la página, o cuando cambia cualquiera de los filtros 
     // (ya que fetchConsumible depende de los filtros y useCallback recrea la función).
     useEffect(() => {
-        fetchConsumible(paginaActual);
-    }, [paginaActual, fetchConsumible]);
+        fetchResolucion(paginaActual);
+    }, [paginaActual, fetchResolucion]);
 
     // 4. EFECTO: Cuando cambian los filtros, volvemos a la página 1.
     useEffect(() => {
@@ -95,7 +104,17 @@ const ConsumiblePage = () => {
     }, [elementoSeleccionado, fechaInicio, fechaFin, tamanoPagina]);
 
 
-    // --- MANEJADORES DE ACCIÓN ---
+    // --- MANEJADORES DE CRUD ---
+    // Funciones CRUD
+    const handleCreate = () => {
+        setResolucionEditando(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (resoluciones) => {
+        setResolucionEditando(resoluciones);
+        setIsModalOpen(true);
+    };
 
     const handleExport = async () => {
         if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
@@ -104,7 +123,7 @@ const ConsumiblePage = () => {
         }
 
         try {
-            await exportarConsumibles({
+            await exportarResoluciones({
                 query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
                 fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
@@ -114,35 +133,45 @@ const ConsumiblePage = () => {
         }
     };
 
-    // Funciones CRUD
-    const handleCreate = () => {
-        setConsumibleEditando(null);
-        setIsModalOpen(true);
-    };
-
-    const handleEdit = (consumible) => {
-        setConsumibleEditando(consumible);
-        setIsModalOpen(true);
-    };
 
     const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el consumible "${nombre}"?`)) {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar la resolución "${nombre}"?`)) {
             return;
         }
         try {
-            await deleteConsumible(id);
-            alert(`Consumible "${nombre}" eliminado con éxito.`);
-            await fetchConsumible(paginaActual);
+            await deleteResolucion(id);
+            alert(`Resolucion "${nombre}" eliminado con éxito.`);
+            await fetchResolucion(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (consumibleActualizado = false) => {
+    const handleCloseModal = (resolucionActualizada = false) => {
         setIsModalOpen(false);
-        setConsumibleEditando(null);
-        if (consumibleActualizado) {
-            fetchConsumible(paginaActual);
+        setResolucionEditando(null);
+        if (resolucionActualizada) {
+            fetchResolucion(paginaActual);
+        }
+    };
+
+    // Reasignar
+    const handleOpenReasignar = (resolucion) => {
+        setResolucionReasignando(resolucion);
+        setIsReasignarOpen(true);
+    };
+
+    const handleConfirmReasignar = async () => {
+        if (!ResolucionReasignando || !nuevaIncidencia) return;
+        try {
+            const resultado = await reasignarResolucion(ResolucionReasignando.idResolucion, nuevaIncidencia.value);
+            alert(resultado);
+            setIsReasignarOpen(false);
+            setResolucionReasignando(null);
+            setNuevaIncidencia(null);
+            fetchResolucion(paginaActual);
+        } catch (err) {
+            alert(`Error al reasignar: ${err.message}`);
         }
     };
 
@@ -165,7 +194,7 @@ const ConsumiblePage = () => {
 
     return (
         <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Consumibles</h1>
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Resoluciones</h1>
 
             <div className="flex flex-col gap-4">
 
@@ -175,7 +204,7 @@ const ConsumiblePage = () => {
                         onClick={handleCreate}
                         className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
                     >
-                        ➕ Crear Nuevo consumible
+                        ➕ Agregar Nueva resolución
                     </button>
                 </div>
 
@@ -257,8 +286,6 @@ const ConsumiblePage = () => {
                             Limpiar
                         </button>
 
-                        {/* EL BOTÓN "BUSCAR" FUE REMOVIDO */}
-
                         <button
                             onClick={handleExport}
                             disabled={cargando}
@@ -295,36 +322,37 @@ const ConsumiblePage = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Impresora</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dispositivo</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle Incidencia</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Resolución</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiempo (días)</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comentarios</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Lectura</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amarillo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Magenta</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cian</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Negro</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Residuos</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {consumibles.map((c) => (
-                                <tr key={c.idConsumible}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.idConsumible}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombre}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaLectura?.slice(0, 10)}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoAmarillo}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoMagenta}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoCian}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoNegro}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.contenedorResiduos}</td>
+                            {resoluciones.map((r) => (
+                                <tr key={r.idResolucion}>
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{r.idResolucion}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.nombre}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.descripcion}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.detalle}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.fechaResolucion?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.tiempoResolucionDias}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.comentarios}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.nombreApellido}</td>
+
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
-                                        <button onClick={() => handleDelete(c.idConsumible, c.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                                        <button onClick={() => handleEdit(r)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
+                                        <button onClick={() => handleOpenReasignar(r)} className="text-yellow-600 hover:text-yellow-900 mr-3"> Reasignar</button>
+                                        <button onClick={() => handleDelete(r.idResolucion)} className="text-red-600 hover:text-red-900">Eliminar</button>
+
                                     </td>
                                 </tr>
                             ))}
-                            {consumibles.length === 0 && (
+                            {resoluciones.length === 0 && (
                                 <tr>
                                     <td colSpan="10" className="px-6 py-4 text-center text-gray-500">
                                         No se encontraron consumibles con estos filtros.
@@ -357,14 +385,50 @@ const ConsumiblePage = () => {
                 </button>
             </div>
 
-            {/* MODAL */}
+            {/* MODAL Crear / Editar */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-center backdrop-blur-sm">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-                        <ConsumibleForm
-                            consumible={consumibleEditando}
+                        <ResolucionesForm
+                            resolucion={ResolucionEditando}
                             onClose={handleCloseModal}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Reasignar */}
+            {isReasignarOpen && (
+                <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 flex justify-center items-center">
+                    <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full">
+                        <h2 className="text-xl font-bold mb-4">Reasignar Resolución</h2>
+                        <AsyncSelect
+                            cacheOptions
+                            defaultOptions
+                            loadOptions={async (inputValue) => {
+                                const opciones = await buscarIncidenciasSelect(inputValue, 1, 50);
+                                console.log("Opciones recibidas:", opciones);
+                                return opciones;
+                            }}
+                            value={nuevaIncidencia}
+                            onChange={setNuevaIncidencia}
+                            placeholder="Selecciona nueva incidencia..."
+                            isClearable
+                        />
+                        <div className="flex justify-end space-x-2 mt-4">
+                            <button
+                                onClick={() => setIsReasignarOpen(false)}
+                                className="bg-gray-500 text-white px-3 py-1 rounded"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmReasignar}
+                                className="bg-green-600 text-white px-3 py-1 rounded"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -372,4 +436,4 @@ const ConsumiblePage = () => {
     );
 };
 
-export default ConsumiblePage;
+export default ResolucionPage;

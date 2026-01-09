@@ -3,16 +3,16 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    buscarDispositivosSelect,
+    buscarOtrosDispositivosSelect,
     buscarUsuarioSelect,
-    deleteConsumible,
-    exportarConsumibles,
-    getConsumiblesPaginados
+    deleteEstadoDispositivo,
+    exportarEstadoDispositivos,
+    getEstadoDispositivosPaginados
 } from '../../../services/api';
-import ConsumibleForm from './ConsumibleForm';
+import EstadoDispositivoForm from './EstadoDispositivoForm';
 
-const ConsumiblePage = () => {
-    const [consumibles, setConsumibles] = useState([]);
+const EstadoDispositivoPage = () => {
+    const [estadodispositivos, setEstadoDispositivos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
 
@@ -31,7 +31,7 @@ const ConsumiblePage = () => {
     const [totalPaginas, setTotalPaginas] = useState(1);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [consumibleEditando, setConsumibleEditando] = useState(null);
+    const [estadoDispositivoEditando, setEstadoDispositivoEditando] = useState(null);
 
     // 1. EFECTO: Cargar la lista de opciones (Dispositivo vs Usuario)
     useEffect(() => {
@@ -41,7 +41,7 @@ const ConsumiblePage = () => {
             try {
                 let data = [];
                 if (criterioBusqueda === "dispositivo") {
-                    data = await buscarDispositivosSelect();
+                    data = await buscarOtrosDispositivosSelect();
                 } else if (criterioBusqueda === "usuario") {
                     data = await buscarUsuarioSelect();
                 }
@@ -56,7 +56,7 @@ const ConsumiblePage = () => {
 
     // 2. FUNCIÓN DE BÚSQUEDA PRINCIPAL (memoizada)
     // Se ejecuta con los filtros actuales
-    const fetchConsumible = useCallback(async (page) => {
+    const fetchEstadoDispositivo = useCallback(async (page) => {
         setCargando(true);
         setError(null);
         try {
@@ -65,7 +65,7 @@ const ConsumiblePage = () => {
             const fechaFinParam = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
             const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
 
-            const data = await getConsumiblesPaginados(
+            const data = await getEstadoDispositivosPaginados(
                 page,
                 tamanoPagina,
                 terminoBusqueda,
@@ -73,10 +73,10 @@ const ConsumiblePage = () => {
                 fechaFinParam,
             );
 
-            setConsumibles(Array.isArray(data.datos) ? data.datos : []);
+            setEstadoDispositivos(Array.isArray(data.datos) ? data.datos : []);
             setTotalPaginas(data.totalPaginas || 1);
         } catch (err) {
-            setError(err.message || 'Fallo al cargar los consumibles paginados.');
+            setError(err.message || 'Fallo al cargar los estado dispositivos paginados.');
         } finally {
             setCargando(false);
         }
@@ -86,8 +86,8 @@ const ConsumiblePage = () => {
     // Se ejecuta cuando cambia la página, o cuando cambia cualquiera de los filtros 
     // (ya que fetchConsumible depende de los filtros y useCallback recrea la función).
     useEffect(() => {
-        fetchConsumible(paginaActual);
-    }, [paginaActual, fetchConsumible]);
+        fetchEstadoDispositivo(paginaActual);
+    }, [paginaActual, fetchEstadoDispositivo]);
 
     // 4. EFECTO: Cuando cambian los filtros, volvemos a la página 1.
     useEffect(() => {
@@ -104,7 +104,7 @@ const ConsumiblePage = () => {
         }
 
         try {
-            await exportarConsumibles({
+            await exportarEstadoDispositivos({
                 query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
                 fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
@@ -116,33 +116,33 @@ const ConsumiblePage = () => {
 
     // Funciones CRUD
     const handleCreate = () => {
-        setConsumibleEditando(null);
+        setEstadoDispositivoEditando(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (consumible) => {
-        setConsumibleEditando(consumible);
+    const handleEdit = (estadodispositivos) => {
+        setEstadoDispositivoEditando(estadodispositivos);
         setIsModalOpen(true);
     };
 
     const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el consumible "${nombre}"?`)) {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el estado del dispositivo "${nombre}"?`)) {
             return;
         }
         try {
-            await deleteConsumible(id);
-            alert(`Consumible "${nombre}" eliminado con éxito.`);
-            await fetchConsumible(paginaActual);
+            await deleteEstadoDispositivo(id);
+            alert(`Estado Dispositivo "${nombre}" eliminado con éxito.`);
+            await fetchEstadoDispositivo(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (consumibleActualizado = false) => {
+    const handleCloseModal = (estadoDispositivoActualizado = false) => {
         setIsModalOpen(false);
-        setConsumibleEditando(null);
-        if (consumibleActualizado) {
-            fetchConsumible(paginaActual);
+        setEstadoDispositivoEditando(null);
+        if (estadoDispositivoActualizado) {
+            fetchEstadoDispositivo(paginaActual);
         }
     };
 
@@ -165,7 +165,7 @@ const ConsumiblePage = () => {
 
     return (
         <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Consumibles</h1>
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Estado de otros Dispositivos</h1>
 
             <div className="flex flex-col gap-4">
 
@@ -175,7 +175,7 @@ const ConsumiblePage = () => {
                         onClick={handleCreate}
                         className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
                     >
-                        ➕ Crear Nuevo consumible
+                        ➕ Crear Nuevo Estado de Dispositivo
                     </button>
                 </div>
 
@@ -295,39 +295,33 @@ const ConsumiblePage = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Impresora</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dispositivo</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Lectura</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amarillo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Magenta</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cian</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Negro</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Residuos</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalles</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comentarios</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {consumibles.map((c) => (
-                                <tr key={c.idConsumible}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.idConsumible}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombre}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaLectura?.slice(0, 10)}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoAmarillo}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoMagenta}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoCian}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoNegro}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.contenedorResiduos}</td>
+                            {estadodispositivos.map((e) => (
+                                <tr key={e.idEstadoDispositivo}>
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{e.idEstadoDispositivo}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{e.nombre}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{e.nombreApellido}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{e.fechaEstado?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{e.detalles}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{e.comentarios}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
-                                        <button onClick={() => handleDelete(c.idConsumible, c.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                                        <button onClick={() => handleEdit(e)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
+                                        <button onClick={() => handleDelete(e.idEstadoDispositivo, e.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
-                            {consumibles.length === 0 && (
+                            {estadodispositivos.length === 0 && (
                                 <tr>
                                     <td colSpan="10" className="px-6 py-4 text-center text-gray-500">
-                                        No se encontraron consumibles con estos filtros.
+                                        No se encontraron estados de dispositivos con estos filtros.
                                     </td>
                                 </tr>
                             )}
@@ -361,8 +355,8 @@ const ConsumiblePage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-center backdrop-blur-sm">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-                        <ConsumibleForm
-                            consumible={consumibleEditando}
+                        <EstadoDispositivoForm
+                            estadodispositivo={estadoDispositivoEditando}
                             onClose={handleCloseModal}
                         />
                     </div>
@@ -372,4 +366,4 @@ const ConsumiblePage = () => {
     );
 };
 
-export default ConsumiblePage;
+export default EstadoDispositivoPage;

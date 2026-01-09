@@ -4,13 +4,13 @@ import AsyncSelect from 'react-select/async';
 import {
     buscarDispositivosSelect,
     buscarUsuarioSelect,
-    createConsumible,
+    createConsumo,
     getDispositivoById,
     getUsuarioById,
-    updateConsumible
+    updateConsumo
 } from '../../../services/api';
 
-const ConsumibleForm = ({ consumible, onClose }) => {
+const ConsumoForm = ({ consumo, onClose }) => {
     const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
@@ -19,21 +19,20 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         idDispositivo: '',
         idUsuario: '',
         fechaLectura: '',
-        cartuchoAmarillo: '0',
-        cartuchoMagenta: '0',
-        cartuchoCian: '0',
-        cartuchoNegro: '0',
-        contenedorResiduos: '0',
+        copiaColor: '0',
+        impresionColor: '0',
+        copiaBw: '0',
+        impresionBw: '0',
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!consumible;
+    const isEditing = !!consumo;
 
     // Carga de datos si estamos editando
     useEffect(() => {
-        if (consumible) {
+        if (consumo) {
             const formatDate = (fecha) => {
                 if (!fecha) return '';
                 const date = new Date(fecha);
@@ -42,21 +41,20 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 
             setForm({
-                idDispositivo: consumible.idDispositivo?.toString() ?? '',
-                idUsuario: consumible.idUsuario?.toString() ?? '',
-                fechaLectura: formatDate(consumible.fechaLectura) ?? '',
-                cartuchoAmarillo: consumible.cartuchoAmarillo?.toString() ?? '0',
-                cartuchoMagenta: consumible.cartuchoMagenta?.toString() ?? '0',
-                cartuchoCian: consumible.cartuchoCian?.toString() ?? '0',
-                cartuchoNegro: consumible.cartuchoNegro?.toString() ?? '0',
-                contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0'
+                idDispositivo: consumo.idDispositivo?.toString() ?? '',
+                idUsuario: consumo.idUsuario?.toString() ?? '',
+                fechaLectura: formatDate(consumo.fechaLectura) ?? '',
+                copiaColor: consumo.copiaColor?.toString() ?? '0',
+                impresionColor: consumo.impresionColor?.toString() ?? '0',
+                copiaBw: consumo.copiaBw?.toString() ?? '0',
+                impresionBw: consumo.impresionBw?.toString() ?? '0'
             });
 
             const cargarDatosForaneos = async () => {
                 try {
                     const [dispositivo, usuario] = await Promise.all([
-                        getDispositivoById(consumible.idDispositivo),
-                        getUsuarioById(consumible.idUsuario)
+                        getDispositivoById(consumo.idDispositivo),
+                        getUsuarioById(consumo.idUsuario)
                     ]);
 
                     setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
@@ -68,7 +66,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [consumible]);
+    }, [consumo]);
 
 
     const handleChange = (e) => {
@@ -103,25 +101,24 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         const payload = {
             idDispositivo: safeParseInt(form.idDispositivo),
             idUsuario: safeParseInt(form.idUsuario),
-            fechaLectura: form.fechaLectura,
-            cartuchoAmarillo: safeParseInt(form.cartuchoAmarillo),
-            cartuchoMagenta: safeParseInt(form.cartuchoMagenta),
-            cartuchoCian: safeParseInt(form.cartuchoCian),
-            cartuchoNegro: safeParseInt(form.cartuchoNegro),
-            contenedorResiduos: safeParseInt(form.contenedorResiduos) // ContenedorResiduos SIEMPRE debe ser un número (o 0).
+            FechaLectura: form.FechaLectura ?? form.fechaLectura,
+            copiaColor: safeParseInt(form.copiaColor),
+            impresionColor: safeParseInt(form.impresionColor),
+            copiaBw: safeParseInt(form.copiaBw),
+            impresionBw: safeParseInt(form.impresionBw)
         };
 
         try {
             if (isEditing) {
-                await updateConsumible(consumible.idConsumible, payload);
+                await updateConsumo(consumo.idConsumo, payload);
             } else {
-                await createConsumible(payload);
+                await createConsumo(payload);
             }
 
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumibles.';
+            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumo.';
             setError(errorMessage);
         } finally {
             setCargando(false);
@@ -135,7 +132,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Consumible' : 'Crear Nuevo Registro de Consumible'}
+                {isEditing ? 'Editar Consumo' : 'Crear Nuevo Registro de Consumo'}
             </h2>
 
             {error && (
@@ -223,65 +220,49 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                     className="w-full border rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Amarillo */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoAmarillo">C. Amarillo (Opcional)</label>
+                {/* Input Copia Color */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="copiaColor">Copia Color (Opcional)</label>
                 <input
-                    id="cartuchoAmarillo"
+                    id="copiaColor"
                     type="number"
-                    name="cartuchoAmarillo"
-                    value={form.cartuchoAmarillo}
+                    name="copiaColor"
+                    value={form.copiaColor}
                     onChange={handleChange}
-                    // Quité 'required' para permitir dejar vacío o '0'
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Magenta */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoMagenta">C. Magenta (Opcional)</label>
+                {/* Input Impresión a Color */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="impresionColor">Impr. Color (Opcional)</label>
                 <input
-                    id="cartuchoMagenta"
+                    id="impresionColor"
                     type="number"
-                    name="cartuchoMagenta"
-                    value={form.cartuchoMagenta}
+                    name="impresionColor"
+                    value={form.impresionColor}
                     onChange={handleChange}
-                    // Quité 'required'
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Cian */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoCian">C. Cian (Opcional)</label>
+                {/* Input Copia BW */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="copiaBw">Copia Bw (Opcional)</label>
                 <input
-                    id="cartuchoCian"
+                    id="copiaBw"
                     type="number"
-                    name="cartuchoCian"
-                    value={form.cartuchoCian}
+                    name="copiaBw"
+                    value={form.copiaBw}
                     onChange={handleChange}
-                    // Quité 'required'
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
                 {/* Input Cartucho Negro */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoNegro">C. Negro</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="impresionBw">Impr. Bw</label>
                 <input
-                    id="cartuchoNegro"
+                    id="impresionBw"
                     type="number"
-                    name="cartuchoNegro"
-                    value={form.cartuchoNegro}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Contenedor Residuos */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contenedorResiduos">C. Residuos</label>
-                <input
-                    id="contenedorResiduos"
-                    type="number"
-                    name="contenedorResiduos"
-                    value={form.contenedorResiduos}
+                    name="impresionBw"
+                    value={form.impresionBw}
                     onChange={handleChange}
                     required
                     disabled={cargando || !!mensajeExito}
@@ -313,4 +294,4 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 };
 
-export default ConsumibleForm;
+export default ConsumoForm;

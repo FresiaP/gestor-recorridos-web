@@ -36,3 +36,23 @@
     transform: rotate(360deg);
   }
 }
+
+/* --- CLASE AÑADIDA PARA EL LOGIN (MODIFICADA) --- */
+
+.login-background {
+    /* 1. Propiedades del fondo de mosaico. La URL se aplica en Login.jsx */
+    background-repeat: repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    width: 100%;
+    
+    /* 2. Layout properties */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* AÑADIDO: Padding superior para compensar el Header fijo */
+    padding-top: 60px; 
+    /* Padding inferior para compensar el Footer fijo */
+    padding-bottom: 60px; 
+}

@@ -1,16 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 //import LogoImage from '../../images/logo.png';
 import LogoImage from '../../images/pescanova_logo.png';
 
 // Configuración de Menú 
 const menuConfig = [
-    // 1. Dashboard (Se mantendra fijo)
+    // 1. Dashboard 
     { label: 'Dashboard', path: '/home', permiso: 'USUARIO_LEER' },
 
-    // 2. Infraestructura (Orden solicitado)
+    // 2. Infraestructura 
     { label: 'Categorías', path: '/infraestructura/categorias', permiso: 'CATEGORIA_LEER' },
     { label: 'Marcas', path: '/infraestructura/marcas', permiso: 'MARCA_LEER' },
+    { label: 'Tipos', path: '/infraestructura/tipos', permiso: 'TIPO_LEER' },
     { label: 'Proveedores', path: '/infraestructura/proveedores', permiso: 'PROVEEDOR_LEER' },
     { label: 'Sitios', path: '/infraestructura/sitios', permiso: 'SITIO_LEER' },
     { label: 'Contratos', path: '/infraestructura/contratos', permiso: 'CONTRATO_LEER' },
@@ -26,8 +27,9 @@ const menuConfig = [
 
     // 4. Incidencias
     { label: 'Incidencias', path: '/incidencia/incidencias', permiso: 'INCIDENCIA_LEER' },
-    { label: 'Estado Dispositivo', path: '/incidencia/estadodispositivo', permiso: 'ESTADODISPOSITIVO_LEER' },
     { label: 'Resoluciones', path: '/incidencia/resoluciones', permiso: 'RESOLUCION_LEER' },
+    { label: 'Estado Dispositivo', path: '/incidencia/estadodispositivo', permiso: 'ESTADODISPOSITIVO_LEER' },
+
 
     // 5. Usuarios
     { label: 'Usuarios', path: '/usuarios', permiso: 'USUARIO_LEER' },
@@ -38,10 +40,9 @@ const menuConfig = [
     { label: 'Auditoría', path: '/auditoria', permiso: 'AUDITORIA_VER' },
 
     // 7. Reportes 
-    { label: 'Reportes', path: '/reportes', permiso: 'CONSUMO_LEER' },
+    { label: 'Reportes de Consumo', path: '/reportes/reporte-consumo', permiso: 'CONSUMO_LEER' },
+    { label: 'Vencimiento Contratos', path: '/reportes/vencimiento-contratos', permiso: 'CONTRATO_LEER' },
 
-    // 8. Configuración 
-    { label: 'Configuración', path: '/configuracion', permiso: 'USUARIO_LEER' },
 ];
 
 // Nombre del Permiso Admin
@@ -66,18 +67,17 @@ const IconoInfraestructura = () => (
 const IconoAuditoria = () => (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l3-3m0 0l3 3m-3-3v12" /></svg>
 );
-const IconoReporte = IconoAuditoria; // Usar el mismo ícono para Reporte
-const IconoConfig = () => (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-);
+const IconoReporte = IconoAuditoria;
 
 
-// Agrupación por secciones y ORDENADAS (Dashboard ELIMINADO de las secciones)
+
+// Agrupación por secciones y ORDENADAS 
 const secciones = {
     'Infraestructura': [
-        // Orden solicitado: Categorías, Marcas, Proveedores, Sitios, Contratos, Modelos, Ubicaciones, Dispositivos, Otros Dispositivos
+
         '/infraestructura/categorias',
         '/infraestructura/marcas',
+        '/infraestructura/tipos',
         '/infraestructura/proveedores',
         '/infraestructura/sitios',
         '/infraestructura/contratos',
@@ -87,11 +87,10 @@ const secciones = {
         '/infraestructura/otrosdispositivo',
     ],
     'Recorridos': ['/recorridos/consumibles', '/recorridos/consumos', '/recorridos/parametros'],
-    'Incidencias': ['/incidencia/incidencias', '/incidencia/estadodispositivo', '/incidencia/resoluciones'],
+    'Incidencias': ['/incidencia/incidencias', '/incidencia/resoluciones', '/incidencia/estadodispositivo'],
     'Usuarios': ['/usuarios', '/usuarios/permisos', '/usuarios/asignacion'],
     'Auditoría': ['/auditoria'],
-    'Reportes': ['/reportes'],
-    'Configuración': ['/configuracion'],
+    'Reportes': ['/reportes/reporte-consumo', '/reportes/vencimiento-contratos'],
 };
 
 // Mapeo de íconos por ruta
@@ -100,24 +99,24 @@ const iconMap = {
     '/usuarios': IconoUsuario,
     '/usuarios/permisos': IconoUsuario,
     '/usuarios/asignacion': IconoUsuario,
-    '/recorridos/consumibles': IconoRecorridos,
+    '/recorridos/consumible': IconoRecorridos,
     '/recorridos/consumos': IconoRecorridos,
     '/recorridos/parametros': IconoRecorridos,
     '/incidencia/incidencias': IconoIncidencia,
-    '/incidencia/estadodispositivo': IconoIncidencia,
     '/incidencia/resoluciones': IconoIncidencia,
+    '/incidencia/estadodispositivo': IconoIncidencia,
     '/infraestructura/contratos': IconoInfraestructura,
     '/infraestructura/dispositivos': IconoInfraestructura,
     '/infraestructura/otrosdispositivo': IconoInfraestructura,
     '/infraestructura/sitios': IconoInfraestructura,
     '/infraestructura/ubicaciones': IconoInfraestructura,
     '/infraestructura/marcas': IconoInfraestructura,
+    '/infraestructura/tipos': IconoInfraestructura,
     '/infraestructura/modelos': IconoInfraestructura,
     '/infraestructura/proveedores': IconoInfraestructura,
     '/infraestructura/categorias': IconoInfraestructura,
     '/auditoria': IconoAuditoria,
-    '/reportes': IconoReporte,
-    '/configuracion': IconoConfig,
+    '/reportes/reporte-consumo': IconoReporte,
 };
 
 // Función auxiliar para obtener la sección padre de una ruta
@@ -240,26 +239,28 @@ const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {
 
                             {/* SUBMENÚ DESPLEGABLE */}
                             <div
-                                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+                                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'
+                                    }`}
                             >
-                                {items.map(item => {
-                                    return (
-                                        <NavLink
-                                            key={item.path}
-                                            to={item.path}
-                                            className={({ isActive }) =>
-                                                `flex items-center pl-8 pr-3 py-2 text-sm rounded-lg transition duration-200 
-                                                ${item.path === activePath || isActive
-                                                    ? 'bg-red-600 text-white font-semibold'
-                                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                                }`}
-                                            onClick={handleMenuClose}
-                                        >
-                                            {item.label}
-                                        </NavLink>
-                                    );
-                                })}
+                                {items.map(item => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        end={item.path === '/usuarios'}
+                                        className={({ isActive }) =>
+                                            `flex items-center pl-8 pr-3 py-2 text-sm rounded-lg transition duration-200 
+        ${isActive
+                                                ? 'bg-red-600 text-white font-semibold'
+                                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                                            }`
+                                        }
+                                        onClick={handleMenuClose}
+                                    >
+                                        {item.label}
+                                    </NavLink>
+                                ))}
                             </div>
+
                         </div>
                     );
                 })}

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { getCategoriasPaginadas, deleteCategoria, toggleCategoriaEstado, exportarCategorias } from '../../../services/api';
-import CategoriaForm from './CategoriaForm';
+import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
+import { deleteCategoria, exportarCategorias, getCategoriasPaginadas, toggleCategoriaEstado } from '../../../services/api';
+import CategoriaForm from './CategoriaForm';
 
 const CategoriasPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,7 +134,7 @@ const CategoriasPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="bg-white shadow overflow-x-auto sm:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>

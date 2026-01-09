@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { getOtrosDispositivosPaginados, deleteOtrosDispositivo, toggleOtrosDispositivoEstado, exportarOtrosDispositivos } from '../../../services/api';
-import OtrosDispositivoForm from './OtrosDispositivoForm';
+import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
+import { deleteOtrosDispositivo, exportarOtrosDispositivos, getOtrosDispositivosPaginados, toggleOtrosDispositivoEstado } from '../../../services/api';
+import OtrosDispositivoForm from './OtrosDispositivoForm';
 
 
 const OtrosDispositivoPage = () => {
@@ -158,7 +158,7 @@ const OtrosDispositivoPage = () => {
                                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{o.idOtrosDispositivos}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{o.nombre}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{o.serie}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.tipo}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{o.nombreTipo}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{o.descripcion}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionModelo}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionMarca}</td>

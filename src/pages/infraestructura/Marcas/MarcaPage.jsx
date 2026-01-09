@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { getMarcasPaginadas, deleteMarca, toggleMarcaEstado, exportarMarcas } from '../../../services/api';
-import MarcaForm from './MarcaForm';
+import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
+import { deleteMarca, exportarMarcas, getMarcasPaginadas, toggleMarcaEstado } from '../../../services/api';
+import MarcaForm from './MarcaForm';
 
 const MarcaPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,7 +134,7 @@ const MarcaPage = () => {
             </div>
 
             {/*TABLA DE DATOS*/}
-            <div className="bg-white shadow overflow-hidden rounded-lg">
+            <div className="bg-white shadow overflow-x-auto rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>

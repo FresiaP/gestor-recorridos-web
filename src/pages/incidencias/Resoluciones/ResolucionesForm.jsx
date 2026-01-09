@@ -2,38 +2,34 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarDispositivosSelect,
+    buscarIncidenciasSelect,
     buscarUsuarioSelect,
-    createConsumible,
-    getDispositivoById,
+    createResolucion,
+    getIncidenciaById,
     getUsuarioById,
-    updateConsumible
+    updateResolucion
 } from '../../../services/api';
 
-const ConsumibleForm = ({ consumible, onClose }) => {
-    const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
+const ResolucionForm = ({ resolucion, onClose }) => {
+    const [OpcionesIncidencia, setOpcionesIncidencia] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
-    // 1. ESTADO INICIAL: Usamos el string '0' como valor inicial seguro
+    // 1. ESTADO INICIAL
     const [form, setForm] = useState({
-        idDispositivo: '',
+        idIncidencia: '',
         idUsuario: '',
-        fechaLectura: '',
-        cartuchoAmarillo: '0',
-        cartuchoMagenta: '0',
-        cartuchoCian: '0',
-        cartuchoNegro: '0',
-        contenedorResiduos: '0',
+        fechaResolucion: '',
+        comentarios: '',
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!consumible;
+    const isEditing = !!resolucion;
 
     // Carga de datos si estamos editando
     useEffect(() => {
-        if (consumible) {
+        if (resolucion) {
             const formatDate = (fecha) => {
                 if (!fecha) return '';
                 const date = new Date(fecha);
@@ -42,24 +38,20 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 
             setForm({
-                idDispositivo: consumible.idDispositivo?.toString() ?? '',
-                idUsuario: consumible.idUsuario?.toString() ?? '',
-                fechaLectura: formatDate(consumible.fechaLectura) ?? '',
-                cartuchoAmarillo: consumible.cartuchoAmarillo?.toString() ?? '0',
-                cartuchoMagenta: consumible.cartuchoMagenta?.toString() ?? '0',
-                cartuchoCian: consumible.cartuchoCian?.toString() ?? '0',
-                cartuchoNegro: consumible.cartuchoNegro?.toString() ?? '0',
-                contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0'
+                idIncidencia: resolucion.idIncidencia?.toString() ?? '',
+                fechaResolucion: formatDate(resolucion.fechaResolucion) ?? '',
+                comentarios: resolucion.comentarios?.toString() ?? '0',
+                idUsuario: resolucion.idUsuario?.toString() ?? '',
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [dispositivo, usuario] = await Promise.all([
-                        getDispositivoById(consumible.idDispositivo),
-                        getUsuarioById(consumible.idUsuario)
+                    const [incidencia, usuario] = await Promise.all([
+                        getIncidenciaById(resolucion.idIncidencia),
+                        getUsuarioById(resolucion.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
+                    setOpcionesIncidencia([{ value: incidencia.idIncidencia, label: incidencia.detalle }]);
                     setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
@@ -68,7 +60,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [consumible]);
+    }, [resolucion]);
 
 
     const handleChange = (e) => {
@@ -89,11 +81,10 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         e.preventDefault();
 
         // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
-        if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
+        if (!form.idIncidencia) return setError("Debe seleccionar una incidencia.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
-        if (!form.fechaLectura.trim()) return setError("La fecha de lectura no puede estar vacía.");
+        if (!form.fechaResolucion.trim()) return setError("La fecha de resolucion no puede estar vacía.");
 
-        // La validación de cartuchos de color se relaja para permitir el envío de "" (vacío) o "0"
 
         setCargando(true);
         setError(null);
@@ -101,27 +92,22 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
         // PAYLOAD: Usamos la función safeParseInt para los campos numéricos opcionales.
         const payload = {
-            idDispositivo: safeParseInt(form.idDispositivo),
-            idUsuario: safeParseInt(form.idUsuario),
-            fechaLectura: form.fechaLectura,
-            cartuchoAmarillo: safeParseInt(form.cartuchoAmarillo),
-            cartuchoMagenta: safeParseInt(form.cartuchoMagenta),
-            cartuchoCian: safeParseInt(form.cartuchoCian),
-            cartuchoNegro: safeParseInt(form.cartuchoNegro),
-            contenedorResiduos: safeParseInt(form.contenedorResiduos) // ContenedorResiduos SIEMPRE debe ser un número (o 0).
+            idIncidencia: form.idIncidencia ? safeParseInt(form.idIncidencia) : null,
+            fechaResolucion: form.fechaResolucion,
+            idUsuario: form.idUsuario ? safeParseInt(form.idUsuario) : null,
+            comentarios: form.comentarios || ''
         };
-
         try {
             if (isEditing) {
-                await updateConsumible(consumible.idConsumible, payload);
+                await updateResolucion(resolucion.idResolucion, payload);
             } else {
-                await createConsumible(payload);
+                await createResolucion(payload);
             }
 
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumibles.';
+            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de resolucion.';
             setError(errorMessage);
         } finally {
             setCargando(false);
@@ -135,7 +121,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Consumible' : 'Crear Nuevo Registro de Consumible'}
+                {isEditing ? 'Editar Resolución' : 'Crear Nuevo Registro de Resolución'}
             </h2>
 
             {error && (
@@ -153,31 +139,31 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             <div className="mb-4">
                 <div className="mb-4">
-                    {/* Select Dispositivo */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
+                    {/* Select Incidencia */}
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Incidencia Asociada</label>
                     <AsyncSelect
                         cacheOptions
                         defaultOptions
                         loadOptions={async (inputValue) => {
-                            const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                            setOpcionesDispositivo(opciones);
+                            const opciones = await buscarIncidenciasSelect(inputValue, 1, 50);
+                            setOpcionesIncidencia(opciones);
                             return opciones;
                         }}
                         value={
-                            form.idDispositivo
-                                ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
+                            form.idIncidencia
+                                ? OpcionesIncidencia.find((o) => o.value === parseInt(form.idIncidencia)) || null
                                 : null
                         }
                         onChange={(opcion) => {
-                            setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
-                            setOpcionesDispositivo((prev) => {
+                            setForm((prev) => ({ ...prev, idIncidencia: opcion?.value?.toString() ?? '' }));
+                            setOpcionesIncidencia((prev) => {
                                 if (opcion && !prev.some(o => o.value === opcion.value)) {
                                     return [...prev, opcion];
                                 }
                                 return prev;
                             });
                         }}
-                        placeholder="Buscar y seleccionar dispositivo..."
+                        placeholder="Buscar y seleccionar incidencia..."
                         isClearable
                         className="mb-4"
                     />
@@ -212,84 +198,30 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                     />
                 </div>
 
-                {/* Input Fecha Lectura */}
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Lectura</label>
+                {/* Input Fecha Resolución */}
+                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Resolución</label>
                 <input
                     type="date"
-                    name="fechaLectura"
-                    value={form.fechaLectura}
+                    name="fechaResolucion"
+                    value={form.fechaResolucion}
                     onChange={handleChange}
                     required
                     className="w-full border rounded px-3 py-2 mb-4"
                 />
 
-                {/* Input Cartucho Amarillo */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoAmarillo">C. Amarillo (Opcional)</label>
+                {/* Comentarios */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoAmarillo">Comentarios</label>
                 <input
-                    id="cartuchoAmarillo"
-                    type="number"
-                    name="cartuchoAmarillo"
-                    value={form.cartuchoAmarillo}
+                    id="comentarios"
+                    type="text"
+                    name="comentarios"
+                    value={form.comentarios}
                     onChange={handleChange}
-                    // Quité 'required' para permitir dejar vacío o '0'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Cartucho Magenta */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoMagenta">C. Magenta (Opcional)</label>
-                <input
-                    id="cartuchoMagenta"
-                    type="number"
-                    name="cartuchoMagenta"
-                    value={form.cartuchoMagenta}
-                    onChange={handleChange}
-                    // Quité 'required'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Cartucho Cian */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoCian">C. Cian (Opcional)</label>
-                <input
-                    id="cartuchoCian"
-                    type="number"
-                    name="cartuchoCian"
-                    value={form.cartuchoCian}
-                    onChange={handleChange}
-                    // Quité 'required'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Cartucho Negro */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoNegro">C. Negro</label>
-                <input
-                    id="cartuchoNegro"
-                    type="number"
-                    name="cartuchoNegro"
-                    value={form.cartuchoNegro}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Contenedor Residuos */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contenedorResiduos">C. Residuos</label>
-                <input
-                    id="contenedorResiduos"
-                    type="number"
-                    name="contenedorResiduos"
-                    value={form.contenedorResiduos}
-                    onChange={handleChange}
-                    required
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
             </div>
-
 
             <div className="flex items-center justify-between mt-6">
                 <button
@@ -313,4 +245,4 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
 };
 
-export default ConsumibleForm;
+export default ResolucionForm;

@@ -5,14 +5,14 @@ import { useCallback, useEffect, useState } from 'react';
 import {
     buscarDispositivosSelect,
     buscarUsuarioSelect,
-    deleteConsumible,
-    exportarConsumibles,
-    getConsumiblesPaginados
+    deleteIncidencia,
+    exportarIncidencias,
+    getIncidenciasPaginadas
 } from '../../../services/api';
-import ConsumibleForm from './ConsumibleForm';
+import IncidenciaForm from './IncidenciaForm';
 
-const ConsumiblePage = () => {
-    const [consumibles, setConsumibles] = useState([]);
+const IncidenciaPage = () => {
+    const [incidencias, setIncidencias] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
 
@@ -20,6 +20,7 @@ const ConsumiblePage = () => {
     const [criterioBusqueda, setCriterioBusqueda] = useState("dispositivo");
     const [opcionesBusqueda, setOpcionesBusqueda] = useState([]);
     const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
+    const [resueltas, setResueltas] = useState(null);
 
     // Estados de fecha
     const [fechaInicio, setFechaInicio] = useState(null);
@@ -31,7 +32,7 @@ const ConsumiblePage = () => {
     const [totalPaginas, setTotalPaginas] = useState(1);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [consumibleEditando, setConsumibleEditando] = useState(null);
+    const [incidenciaEditando, setIncidenciaEditando] = useState(null);
 
     // 1. EFECTO: Cargar la lista de opciones (Dispositivo vs Usuario)
     useEffect(() => {
@@ -56,7 +57,7 @@ const ConsumiblePage = () => {
 
     // 2. FUNCIÓN DE BÚSQUEDA PRINCIPAL (memoizada)
     // Se ejecuta con los filtros actuales
-    const fetchConsumible = useCallback(async (page) => {
+    const fetchIncidencia = useCallback(async (page) => {
         setCargando(true);
         setError(null);
         try {
@@ -65,34 +66,35 @@ const ConsumiblePage = () => {
             const fechaFinParam = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
             const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
 
-            const data = await getConsumiblesPaginados(
+            const data = await getIncidenciasPaginadas(
                 page,
                 tamanoPagina,
                 terminoBusqueda,
                 fechaInicioParam,
                 fechaFinParam,
+                resueltas,
             );
 
-            setConsumibles(Array.isArray(data.datos) ? data.datos : []);
+            setIncidencias(Array.isArray(data.datos) ? data.datos : []);
             setTotalPaginas(data.totalPaginas || 1);
         } catch (err) {
-            setError(err.message || 'Fallo al cargar los consumibles paginados.');
+            setError(err.message || 'Fallo al cargar las incidecias paginadas.');
         } finally {
             setCargando(false);
         }
-    }, [tamanoPagina, elementoSeleccionado, fechaInicio, fechaFin]);
+    }, [tamanoPagina, elementoSeleccionado, fechaInicio, fechaFin, resueltas]);
 
     // 3. EFECTO: Patrón de Búsqueda Automática (Live Filter)
     // Se ejecuta cuando cambia la página, o cuando cambia cualquiera de los filtros 
     // (ya que fetchConsumible depende de los filtros y useCallback recrea la función).
     useEffect(() => {
-        fetchConsumible(paginaActual);
-    }, [paginaActual, fetchConsumible]);
+        fetchIncidencia(paginaActual);
+    }, [paginaActual, fetchIncidencia]);
 
     // 4. EFECTO: Cuando cambian los filtros, volvemos a la página 1.
     useEffect(() => {
         setPaginaActual(1);
-    }, [elementoSeleccionado, fechaInicio, fechaFin, tamanoPagina]);
+    }, [elementoSeleccionado, fechaInicio, fechaFin, tamanoPagina, resueltas]);
 
 
     // --- MANEJADORES DE ACCIÓN ---
@@ -104,11 +106,13 @@ const ConsumiblePage = () => {
         }
 
         try {
-            await exportarConsumibles({
-                query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
-                fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
-                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
-            });
+            await exportarIncidencias(
+                elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
+                fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
+                fechaFin ? fechaFin.toISOString().split("T")[0] : null,
+                "rango",
+                resueltas
+            );
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
@@ -116,33 +120,33 @@ const ConsumiblePage = () => {
 
     // Funciones CRUD
     const handleCreate = () => {
-        setConsumibleEditando(null);
+        setIncidenciaEditando(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (consumible) => {
-        setConsumibleEditando(consumible);
+    const handleEdit = (incidecias) => {
+        setIncidenciaEditando(incidecias);
         setIsModalOpen(true);
     };
 
     const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el consumible "${nombre}"?`)) {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar la incidencia "${nombre}"?`)) {
             return;
         }
         try {
-            await deleteConsumible(id);
-            alert(`Consumible "${nombre}" eliminado con éxito.`);
-            await fetchConsumible(paginaActual);
+            await deleteIncidencia(id);
+            alert(`Incidencia "${nombre}" eliminado con éxito.`);
+            await fetchIncidencia(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (consumibleActualizado = false) => {
+    const handleCloseModal = (incidenciaActualizada = false) => {
         setIsModalOpen(false);
-        setConsumibleEditando(null);
-        if (consumibleActualizado) {
-            fetchConsumible(paginaActual);
+        setIncidenciaEditando(null);
+        if (incidenciaActualizada) {
+            fetchIncidencia(paginaActual);
         }
     };
 
@@ -158,14 +162,14 @@ const ConsumiblePage = () => {
             setPaginaActual(prev => prev - 1);
         }
     };
-    // -------------------------------
 
+    // -------------------------------
     // Renderizado Condicional de Error
     if (error) { return (<div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>); }
 
     return (
         <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Consumibles</h1>
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Incidencias</h1>
 
             <div className="flex flex-col gap-4">
 
@@ -175,7 +179,7 @@ const ConsumiblePage = () => {
                         onClick={handleCreate}
                         className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
                     >
-                        ➕ Crear Nuevo consumible
+                        ➕ Crear Nueva Incidencia
                     </button>
                 </div>
 
@@ -239,8 +243,28 @@ const ConsumiblePage = () => {
                                 label="Hasta"
                                 slotProps={{ textField: { size: "small", className: "w-36" } }}
                             />
+
+                            {/* Estado */}
+                            <div className="flex flex-col"></div>
+                            <label className="text-sm font-bold text-gray-700 mb-1">Estado</label>
+                            <select
+                                value={resueltas === null ? "" : resueltas ? "true" : "false"}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "") setResueltas(null);
+                                    else setResueltas(val === "true");
+                                }}
+                                className="border rounded px-3 py-2 h-[40px]"
+                            >
+                                <option value="">Todas</option>
+                                <option value="true">Resueltas</option>
+                                <option value="false">Pendientes</option>
+                            </select>
+
                         </div>
                     </LocalizationProvider>
+
+
 
                     {/* 4. BOTONES Y SELECTOR DE FILAS */}
                     <div className="flex items-center gap-2 ml-auto">
@@ -251,13 +275,12 @@ const ConsumiblePage = () => {
                                 setElementoSeleccionado(null);
                                 setFechaInicio(null);
                                 setFechaFin(null);
+                                setResueltas(null);
                             }}
                             className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300 h-[40px] whitespace-nowrap"
                         >
                             Limpiar
                         </button>
-
-                        {/* EL BOTÓN "BUSCAR" FUE REMOVIDO */}
 
                         <button
                             onClick={handleExport}
@@ -295,39 +318,35 @@ const ConsumiblePage = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Impresora</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dispositivo</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Lectura</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amarillo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Magenta</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cian</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Negro</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Residuos</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Notificación</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resuelto</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {consumibles.map((c) => (
-                                <tr key={c.idConsumible}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.idConsumible}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombre}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaLectura?.slice(0, 10)}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoAmarillo}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoMagenta}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoCian}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoNegro}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.contenedorResiduos}</td>
+                            {incidencias.map((i) => (
+                                <tr key={i.idIncidencia}>
+                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{i.idIncidencia}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.nombre}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.descripcion}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.nombreApellido}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.fechaNotificacion?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.detalle}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.resuelta ? "Sí" : "No"}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
-                                        <button onClick={() => handleDelete(c.idConsumible, c.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                                        <button onClick={() => handleEdit(i)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
+                                        <button onClick={() => handleDelete(i.idIncidencia, i.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
-                            {consumibles.length === 0 && (
+                            {incidencias.length === 0 && (
                                 <tr>
                                     <td colSpan="10" className="px-6 py-4 text-center text-gray-500">
-                                        No se encontraron consumibles con estos filtros.
+                                        No se encontraron incidencias con estos filtros.
                                     </td>
                                 </tr>
                             )}
@@ -361,8 +380,8 @@ const ConsumiblePage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full flex justify-center items-center backdrop-blur-sm">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-                        <ConsumibleForm
-                            consumible={consumibleEditando}
+                        <IncidenciaForm
+                            incidencia={incidenciaEditando}
                             onClose={handleCloseModal}
                         />
                     </div>
@@ -372,4 +391,4 @@ const ConsumiblePage = () => {
     );
 };
 
-export default ConsumiblePage;
+export default IncidenciaPage;

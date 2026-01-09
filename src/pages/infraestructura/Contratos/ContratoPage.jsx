@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getContratosPaginadas, deleteContrato, toggleContratoEstado, exportarContratos } from '../../../services/api';
-import ContratoForm from './ContratoForm';
-import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
-import { DatePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useCallback, useEffect, useState } from 'react';
+import { FaSync } from "react-icons/fa";
+import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
+import { deleteContrato, exportarContratos, getContratosPaginadas, recalcularEstadosContratos } from '../../../services/api';
+import ContratoForm from './ContratoForm';
 
 const ContratosPage = () => {
+    const [mensaje, setMensaje] = useState(null);
+
     const [contratos, setContratos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
@@ -123,22 +125,6 @@ const ContratosPage = () => {
         setIsModalOpen(true);
     };
 
-    const handleToggleEstado = async (contrato) => {
-        const nuevoEstado = !contrato.estado;
-        const accion = nuevoEstado ? 'activar' : 'desactivar';
-
-        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el contrato "${contrato.numeroContrato}"?`)) {
-            return;
-        }
-
-        try {
-            await toggleContratoEstado(contrato.idContrato, nuevoEstado);
-            alert(`Contrato "${contrato.numeroContrato}" ${accion}do con éxito.`);
-            await fetchContratos();
-        } catch (err) {
-            alert(`Error al ${accion}: ${err.message}`);
-        }
-    };
 
     const handleDelete = async (id, numeroContrato) => {
         if (!window.confirm(`¿Estás seguro de que quieres eliminar el contrato "${numeroContrato}"? Esta acción es irreversible.`)) {
@@ -167,6 +153,19 @@ const ContratosPage = () => {
 
     const handlePrevPage = () => {
         if (paginaActual > 1) setPaginaActual(p => p - 1);
+    };
+
+    const recalcularEstados = async () => {
+        try {
+            const response = await recalcularEstadosContratos();
+            setMensaje(response.mensaje);
+
+            // refrescar la lista de contratos 
+            fetchContratos(paginaActual);
+        } catch (error) {
+            console.error("Error al recalcular estados:", error);
+            setMensaje("Error al recalcular estados");
+        }
     };
 
 
@@ -270,8 +269,22 @@ const ContratosPage = () => {
                 </div>
             </div>
 
+            <button
+                onClick={recalcularEstados}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+            >
+                <FaSync /> Actualizar Estados
+            </button>
+
+            {mensaje && (
+                <div className="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                    {mensaje}
+                </div>
+            )}
+
+
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6">
+            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -304,26 +317,15 @@ const ContratosPage = () => {
                                 <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.bolsonImpresionesCopiasColor ?? '—'}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteBw ?? '—'}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteColor ?? '—'}</td>
+                                <td className="px-6 py-4 text-sm text-gray-500">{c.nombreEstado}</td>
 
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {c.estado ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </td>
+
                                 <td className="px-6 py-4 text-right text-sm font-medium">
                                     <button
                                         onClick={() => handleEdit(c)}
                                         className="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150"
                                     >
                                         Editar
-                                    </button>
-                                    <button
-                                        onClick={() => handleToggleEstado(c)}
-                                        className={`mr-3 transition duration-150 ${c.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                                            }`}
-                                        title={c.estado ? 'Desactivar contrato' : 'Activar contrato'}
-                                    >
-                                        {c.estado ? 'Desactivar' : 'Activar'}
                                     </button>
                                     <button
                                         onClick={() => handleDelete(c.idContrato, c.numeroContrato)}
