@@ -1,9 +1,9 @@
 // src/components/layout/DashboardLayout.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getUsuarioActual, eliminarToken } from '../../services/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; //para la redirección al logout
-import Sidebar from './Sidebar';
+import { eliminarToken, getUsuarioActual } from '../../services/api';
 import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 
 // CONFIGURACIÓN DE TIEMPOS DE INACTIVIDAD (en milisegundos)
 // Tiempo estándar de la industria para inactividad es 15 minutos (900,000 ms).
@@ -56,7 +56,7 @@ const DashboardLayout = ({ children, pageTitle, activePath }) => {
         }, WARNING_TIME);
     }, [handleLogout]);
 
-    // Función principal para resetear la inactividad (Ahora solo lógica de timers)
+    // Función principal para resetear la inactividad
     const resetTimeout = useCallback(() => {
         // Limpiamos los dos timers
         clearTimeout(warningTimerRef.current);

@@ -1,3 +1,4 @@
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Autocomplete, TextField } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -173,9 +174,16 @@ const ConsumoPage = () => {
                 <div className="flex justify-start items-center">
                     <button
                         onClick={handleCreate}
-                        className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 
+             text-white font-medium px-5 py-2.5 rounded-lg shadow-md 
+             transition-all duration-200 ease-in-out transform hover:scale-105"
                     >
-                        ➕ Crear Nuevo consumo
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Crear Nuevo consumo
                     </button>
                 </div>
 
@@ -257,6 +265,7 @@ const ConsumoPage = () => {
                             Limpiar
                         </button>
 
+                        {/* EXPORTAR */}
                         <button
                             onClick={handleExport}
                             disabled={cargando}
@@ -320,9 +329,29 @@ const ConsumoPage = () => {
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.copiaBw}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.impresionBw}</td>
                                     <td className="px-6 py-4 text-sm text-gray-700 font-semibold bg-yellow-50">{c.totalBwLectura}</td>
+
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 mr-3">Editar</button>
-                                        <button onClick={() => handleDelete(c.idConsumo, c.nombre)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                                        {/* EDITAR */}
+                                        <button onClick={() => handleEdit(c)}
+                                            className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
+                                        </button>
+
+                                        {/* ELIMINAR */}
+                                        <button onClick={() => handleDelete(c.idConsumo, c.nombre)}
+                                            className="text-red-600 hover:text-red-900 relative group"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
+                                        </button>
                                     </td>
                                 </tr>
                             ))}

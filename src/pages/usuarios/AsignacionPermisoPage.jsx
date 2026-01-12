@@ -1,3 +1,4 @@
+import { TrashIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import BuscadorDebounce from '../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../hooks/useFiltroPaginado';
@@ -68,9 +69,16 @@ const AsignacionesPermisosPage = () => {
       <div className="flex justify-between items-center">
         <button
           onClick={handleCreate} // Este botón centraliza toda la gestión de permisos por usuario
-          className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 
+             text-white font-medium px-5 py-2.5 rounded-lg shadow-md 
+             transition-all duration-200 ease-in-out transform hover:scale-105"
         >
-          ➕ Nueva Asignación
+          <svg xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Asignación
         </button>
 
         <div className="flex items-center space-x-4">
@@ -81,10 +89,12 @@ const AsignacionesPermisosPage = () => {
             placeholder="Buscar por Usuario o Permiso..."
           />
           {/*  botones (Exportar, Select tamaño página) ... */}
+
+          {/* EXPORTAR */}
           <button
             onClick={handleExport}
             disabled={cargando}
-            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
+            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
             title="Exportar toda la lista a Excel"
           >
             <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -123,9 +133,18 @@ const AsignacionesPermisosPage = () => {
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{a.idUsuarioPermiso}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">{a.nombreApellido}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">{a.descripcion}</td>
+
                 <td className="px-6 py-4 text-right text-sm font-medium">
 
-                  <button onClick={() => handleDelete(a.idUsuarioPermiso, a.nombreApellido)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                  {/* ELIMINAR */}
+                  <button onClick={() => handleDelete(a.idUsuarioPermiso, a.nombreApellido)} className="text-red-600 hover:text-red-900 relative group"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                      Eliminar
+                    </span>
+                  </button>
                 </td>
               </tr>
             ))}

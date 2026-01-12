@@ -38,29 +38,9 @@ export const menuConfig = [
 
   // --- SECCIÓN INFRAESTRUCTURA ---
   {
-    label: 'Contratos',
-    path: '/infraestructura/contratos',
-    permiso: PERMISOS.CONTRATO_LEER,
-  },
-  {
-    label: 'Dispositivos',
-    path: '/infraestructura/dispositivos',
-    permiso: PERMISOS.DISPOSITIVO_LEER,
-  },
-  {
-    label: 'Otros Dispositivos',
-    path: '/infraestructura/otros-dispositivos',
-    permiso: PERMISOS.OTROSDISPOSITIVO_LEER,
-  },
-  {
-    label: 'Sitios',
-    path: '/infraestructura/sitios',
-    permiso: PERMISOS.SITIO_LEER,
-  },
-  {
-    label: 'Ubicaciones',
-    path: '/infraestructura/ubicaciones',
-    permiso: PERMISOS.UBICACION_LEER,
+    label: 'Categorías',
+    path: '/infraestructura/categorias',
+    permiso: PERMISOS.CATEGORIA_LEER,
   },
   {
     label: 'Marcas',
@@ -73,14 +53,39 @@ export const menuConfig = [
     permiso: PERMISOS.MODELO_LEER,
   },
   {
+    label: 'Tipos',
+    path: '/infraestructura/tipos',
+    permiso: PERMISOS.TIPO_LEER,
+  },
+  {
+    label: 'Sitios',
+    path: '/infraestructura/sitios',
+    permiso: PERMISOS.SITIO_LEER,
+  },
+  {
+    label: 'Ubicaciones',
+    path: '/infraestructura/ubicaciones',
+    permiso: PERMISOS.UBICACION_LEER,
+  },
+  {
     label: 'Proveedores',
     path: '/infraestructura/proveedores',
     permiso: PERMISOS.PROVEEDOR_LEER,
   },
   {
-    label: 'Categorías',
-    path: '/infraestructura/categorias',
-    permiso: PERMISOS.CATEGORIA_LEER,
+    label: 'Contratos',
+    path: '/infraestructura/contratos',
+    permiso: PERMISOS.CONTRATO_LEER,
+  },
+  {
+    label: 'Dispositivos',
+    path: '/infraestructura/dispositivos',
+    permiso: PERMISOS.DISPOSITIVO_LEER,
+  },
+  {
+    label: 'Otros Dispositivos',
+    path: '/infraestructura/otrosdispositivo',
+    permiso: PERMISOS.OTROSDISPOSITIVO_LEER,
   },
 
   // --- SECCIÓN INCIDENCIAS ---
@@ -90,15 +95,16 @@ export const menuConfig = [
     permiso: PERMISOS.INCIDENCIA_LEER,
   },
   {
-    label: 'Estado Dispositivo',
-    path: '/incidencia/estado-dispositivo',
-    permiso: PERMISOS.ESTADODISPOSITIVO_LEER,
-  },
-  {
     label: 'Resoluciones',
     path: '/incidencia/resoluciones',
     permiso: PERMISOS.RESOLUCION_LEER,
   },
+  {
+    label: 'Estado Dispositivo',
+    path: '/incidencia/estadodispositivo',
+    permiso: PERMISOS.ESTADODISPOSITIVO_LEER,
+  },
+
 
   // --- OTROS MÓDULOS ---
   {
@@ -107,13 +113,10 @@ export const menuConfig = [
     permiso: PERMISOS.AUDITORIA_VER,
   },
   {
-    label: 'Configuración',
-    path: '/configuracion',
-    permiso: PERMISOS.USUARIO_ADMIN,
-  },
-  {
     label: 'Reportes',
     path: '/reportes',
-    permiso: PERMISOS.USUARIO_LEER, // o un permiso específico como 'REPORTES_VER' si lo defines
+    permiso: PERMISOS.USUARIO_LEER,
   },
+  { label: 'Dashboard', path: '/home', permiso: 'USUARIO_LEER' },
+
 ];

@@ -1,3 +1,4 @@
+import { CheckCircleIcon, PencilIcon, TrashIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
@@ -84,10 +85,18 @@ const CategoriasPage = () => {
 
                 <button
                     onClick={handleCreate}
-                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow transition duration-150"
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 
+             text-white font-medium px-5 py-2.5 rounded-lg shadow-md 
+             transition-all duration-200 ease-in-out transform hover:scale-105"
                 >
-                    ➕ Crear Nueva Categoría
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Crear Nueva Categoría
                 </button>
+
 
                 <div className="flex items-center space-x-4">
                     <BuscadorDebounce
@@ -111,7 +120,7 @@ const CategoriasPage = () => {
                     <button
                         onClick={handleExport}
                         disabled={cargando}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
+                        className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
                         title="Exportar toda la lista a Excel"
                     >
                         <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -119,6 +128,7 @@ const CategoriasPage = () => {
                         </svg>
                         Exportar
                     </button>
+
                     <select
                         value={tamanoPagina}
                         onChange={(e) => setTamanoPagina(Number(e.target.value))}
@@ -144,35 +154,59 @@ const CategoriasPage = () => {
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-200">
+                    <tbody className="bg-white divide-y divide-gray-200">
                         {categorias.map((cat) => (
                             <tr key={cat.idCategoria}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cat.idCategoria}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cat.descripcion}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cat.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    <span
+                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cat.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            }`}
+                                    >
                                         {cat.estado ? 'Activa' : 'Inactiva'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-3">
+                                    {/* Editar */}
                                     <button
                                         onClick={() => handleEdit(cat)}
-                                        className="text-indigo-600 hover:text-indigo-900 mr-3 transition duration-150"
+                                        className="text-indigo-600 hover:text-indigo-900 relative group"
                                     >
-                                        Editar
+                                        <PencilIcon className="h-5 w-5" />
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                        bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                            Editar
+                                        </span>
                                     </button>
+
+                                    {/* Activar/Desactivar */}
                                     <button
                                         onClick={() => handleToggleEstado(cat)}
-                                        className={`mr-3 transition duration-150 ${cat.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                        title={cat.estado ? 'Desactivar Categoría (Soft Delete)' : 'Activar Categoría'}
+                                        className={`relative group ${cat.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                                            }`}
                                     >
-                                        {cat.estado ? 'Desactivar' : 'Activar'}
+                                        {cat.estado ? (
+                                            <XCircleIcon className="h-5 w-5" />
+                                        ) : (
+                                            <CheckCircleIcon className="h-5 w-5" />
+                                        )}
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                       bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                            {cat.estado ? 'Desactivar' : 'Activar'}
+                                        </span>
                                     </button>
+
+                                    {/* Eliminar */}
                                     <button
                                         onClick={() => handleDelete(cat.idCategoria, cat.descripcion)}
-                                        className="text-red-600 hover:text-red-900 transition duration-150"
+                                        className="text-red-600 hover:text-red-900 relative group"
                                     >
-                                        Eliminar
+                                        <TrashIcon className="h-5 w-5" />
+                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                     bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                            Eliminar
+                                        </span>
                                     </button>
                                 </td>
                             </tr>
@@ -187,6 +221,7 @@ const CategoriasPage = () => {
                     </tbody>
                 </table>
             </div>
+
 
             {/* CONTROLES DE PAGINACIÓN */}
             <div className="flex justify-center items-center mt-6 p-4 border-t border-gray-200 space-x-1 flex-wrap">

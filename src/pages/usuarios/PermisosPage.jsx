@@ -1,11 +1,10 @@
 // src/pages/usuarios/PermisosPage.jsx
-import React from 'react';
-import {
-    getPermisosPaginados,
-    exportarPermisos
-} from '../../services/api';
 import BuscadorDebounce from '../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../hooks/useFiltroPaginado';
+import {
+    exportarPermisos,
+    getPermisosPaginados
+} from '../../services/api';
 
 const PermisosPage = () => {
     const {
@@ -44,10 +43,11 @@ const PermisosPage = () => {
                         placeholder="Buscar por nombre de permiso..."
                     />
 
+                    {/* EXPORTAR */}
                     <button
                         onClick={handleExport}
                         disabled={cargando}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
+                        className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg flex items-center shadow disabled:opacity-50 transition duration-150"
                         title="Exportar toda la lista a Excel"
                     >
                         Exportar
