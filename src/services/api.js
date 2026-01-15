@@ -4,7 +4,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 // URL base de tu backend C#
-const BASE_URL = 'http://localhost:5010/api';
+const BASE_URL = 'http://10.70.56.217:5010/api';
 
 // =======================================================================
 // UTILERÍAS DE TOKEN

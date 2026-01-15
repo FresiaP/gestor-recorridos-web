@@ -331,10 +331,10 @@ function App() {
 
           {/* 19. Reporte Consumo */}
           <Route
-            path="/reportes/reporte-consumo"
+            path="/reportes/reporteconsumo"
             element={
               <ProtectedRoute permisoRequerido="CONSUMO_LEER">
-                <DashboardLayout pageTitle="Reportes de Consumo" activePath="/reportes/reporte-consumo">
+                <DashboardLayout pageTitle="Reportes de Consumo" activePath="/reportes/reporteconsumo">
                   <ReporteConsumoPage />
                 </DashboardLayout>
               </ProtectedRoute>
@@ -343,10 +343,10 @@ function App() {
 
           {/* 20. Reporte Vencimiento Contrato */}
           <Route
-            path="/reportes/vencimiento-contratos"
+            path="/reportes/vencimientocontratos"
             element={
               <ProtectedRoute permisoRequerido="CONTRATO_LEER">
-                <DashboardLayout pageTitle="Reportes de Vencimiento" activePath="/reportes/vencimiento-contratos">
+                <DashboardLayout pageTitle="Reportes de Vencimiento" activePath="/reportes/vencimientocontratos">
                   <ReporteVencimientoContratoPage />
                 </DashboardLayout>
               </ProtectedRoute>

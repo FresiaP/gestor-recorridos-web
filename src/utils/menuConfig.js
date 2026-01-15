@@ -113,9 +113,14 @@ export const menuConfig = [
     permiso: PERMISOS.AUDITORIA_VER,
   },
   {
-    label: 'Reportes',
-    path: '/reportes',
-    permiso: PERMISOS.USUARIO_LEER,
+    label: 'Reportes de consumo',
+    path: '/reportes/reporteconsumo',
+    permiso: PERMISOS.CONSUMO_LEER,
+  },
+  {
+    label: 'Vencimiento de Contratos',
+    path: '/reportes/vencimientocontratos',
+    permiso: PERMISOS.CONTRATO_LEER,
   },
   { label: 'Dashboard', path: '/home', permiso: 'USUARIO_LEER' },
 

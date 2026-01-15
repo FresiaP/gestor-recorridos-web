@@ -32,7 +32,7 @@ const secciones = {
     ],
     Usuarios: ["/usuarios", "/usuarios/permisos", "/usuarios/asignacion"],
     Auditoría: ["/auditoria"],
-    Reportes: ["/reportes/reporte-consumo", "/reportes/vencimiento-contratos"],
+    Reportes: ["/reportes/reporteconsumo", "/reportes/vencimientocontratos"],
 };
 
 const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {

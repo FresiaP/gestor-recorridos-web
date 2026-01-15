@@ -104,4 +104,5 @@ export const PERMISOS = Object.freeze({
   TIPOPERMISO_BORRAR: 'TIPO_BORRAR',
 
   AUDITORIA_VER: 'AUDITORIA_VER',
+
 });
