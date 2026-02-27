@@ -31,6 +31,11 @@ export const menuConfig = [
     permiso: PERMISOS.CONSUMO_LEER,
   },
   {
+    label: 'Consumos Mensuales',
+    path: '/recorridos/consumosMensuales',
+    permiso: PERMISOS.CONSUMO_LEER,
+  },
+  {
     label: 'Parámetros de Ambiente',
     path: '/recorridos/parametros',
     permiso: PERMISOS.PARAMETROAMBIENTE_LEER,
@@ -78,6 +83,16 @@ export const menuConfig = [
     permiso: PERMISOS.CONTRATO_LEER,
   },
   {
+    label: 'Activos',
+    path: '/infraestructura/activos',
+    permiso: PERMISOS.ACTIVO_LEER,
+  },
+  {
+    label: 'Servicios',
+    path: '/infraestructura/servicios',
+    permiso: PERMISOS.SERVICIO_LEER,
+  },
+  {
     label: 'Dispositivos',
     path: '/infraestructura/dispositivos',
     permiso: PERMISOS.DISPOSITIVO_LEER,
@@ -99,23 +114,12 @@ export const menuConfig = [
     path: '/incidencia/resoluciones',
     permiso: PERMISOS.RESOLUCION_LEER,
   },
-  {
-    label: 'Estado Dispositivo',
-    path: '/incidencia/estadodispositivo',
-    permiso: PERMISOS.ESTADODISPOSITIVO_LEER,
-  },
-
 
   // --- OTROS MÓDULOS ---
   {
     label: 'Auditoría',
     path: '/auditoria',
     permiso: PERMISOS.AUDITORIA_VER,
-  },
-  {
-    label: 'Reportes de consumo',
-    path: '/reportes/reporteconsumo',
-    permiso: PERMISOS.CONSUMO_LEER,
   },
   {
     label: 'Vencimiento de Contratos',

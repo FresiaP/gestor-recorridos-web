@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarEstadoContratosSelect,
+    buscarEstadoSelect,
     buscarProveedoresSelect,
     createContrato,
     getProveedorById,
@@ -335,7 +335,7 @@ const ContratoForm = ({ contrato, onClose }) => {
                 <AsyncSelect
                     cacheOptions
                     defaultOptions
-                    loadOptions={buscarEstadoContratosSelect}
+                    loadOptions={buscarEstadoSelect}
                     value={
                         form.nombreEstado
                             ? { value: form.nombreEstado, label: form.nombreEstado }
@@ -346,7 +346,8 @@ const ContratoForm = ({ contrato, onClose }) => {
                     }
                     placeholder="Seleccionar estado del contrato..."
                     isClearable
-                    className="mb-4" />
+                    className="mb-4"
+                />
             </div>
 
             {/* Botones */}

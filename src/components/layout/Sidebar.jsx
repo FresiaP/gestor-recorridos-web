@@ -17,25 +17,27 @@ const secciones = {
         "/infraestructura/contratos",
         "/infraestructura/modelos",
         "/infraestructura/ubicaciones",
+        "/infraestructura/activos",
+        "/infraestructura/servicios",
         "/infraestructura/dispositivos",
         "/infraestructura/otrosdispositivo",
     ],
     Recorridos: [
         "/recorridos/consumibles",
         "/recorridos/consumos",
+        "/recorridos/consumosMensuales",
         "/recorridos/parametros",
     ],
     Incidencias: [
         "/incidencia/incidencias",
         "/incidencia/resoluciones",
-        "/incidencia/estadodispositivo",
     ],
     Usuarios: ["/usuarios", "/usuarios/permisos", "/usuarios/asignacion"],
     Auditoría: ["/auditoria"],
-    Reportes: ["/reportes/reporteconsumo", "/reportes/vencimientocontratos"],
+    Reportes: ["/reportes/vencimientocontratos"],
 };
 
-const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {
+const Sidebar = ({ isMenuOpen, toggleMenu, activePath, usuario }) => {
     const [seccionAbierta, setSeccionAbierta] = useState(null);
 
     const toggleSeccion = (seccion) => {
@@ -53,20 +55,24 @@ const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {
 
     return (
         <aside
-            className={`
-        fixed top-0 left-0 h-screen w-64 bg-slate-900 text-slate-300 z-30 
-        lg:translate-x-0 transition-transform duration-300 ease-in-out
-        ${isMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
-      `}
-        >
-            {/* Logo */}
-            <div className="h-16 flex items-center justify-center border-b border-gray-800 bg-white shadow-md">
+            className={` fixed top-0 left-0 h-screen bg-slate-900 text-slate-300 z-30 transition-all duration-300 ease-in-out ${isMenuOpen ? "w-64" : "w-16"} `} >
+            {/* Logo + Botón colapsar */}
+            <div className="h-16 flex items-center justify-between border-b border-gray-800 bg-white shadow-md px-2">
                 <img
                     src={LogoImage}
                     alt="Logo Gestor de Recorridos"
-                    className="h-16 w-auto object-contain"
+                    className={`object-contain transition-all duration-300 ${isMenuOpen ? "h-16 w-auto" : "h-10 w-10"}`}
                 />
+
+                <button
+                    onClick={toggleMenu}
+                    className="bg-gray-700 text-white p-1 rounded-full hover:bg-gray-600"
+                    aria-label={isMenuOpen ? "Colapsar menú" : "Expandir menú"}
+                >
+                    {isMenuOpen ? "«" : "»"}
+                </button>
             </div>
+
 
             {/* Navegación */}
             <nav className="mt-6 px-4 overflow-y-auto" style={{ height: "calc(100vh - 4rem)" }}>
@@ -93,8 +99,9 @@ const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {
                             >
                                 <div className="flex items-center">
                                     <HeaderIcon className="h-5 w-5 mr-3" />
-                                    <span className="text-sm font-medium">{seccion}</span>
+                                    {isMenuOpen && <span className="text-sm font-medium">{seccion}</span>}
                                 </div>
+
                                 <svg
                                     className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-90" : ""
                                         }`}
@@ -107,27 +114,47 @@ const Sidebar = ({ isMenuOpen, handleMenuClose, activePath, usuario }) => {
                             </button>
 
                             {/* Submenús */}
-                            <div
-                                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"
-                                    }`}
-                            >
-                                {items.map((item) => (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        end
-                                        className={({ isActive }) =>
-                                            `flex items-center pl-8 pr-3 py-2 text-sm rounded-lg transition duration-200 
-                      ${isActive
-                                                ? "bg-blue-600 text-white font-semibold"
-                                                : "text-gray-400 hover:bg-gray-800 hover:text-white"}`
+                            {isMenuOpen && (
+                                <div
+                                    className={`overflow-y-auto transition-all duration-300 ease-in-out 
+    ${isOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"}`}
+                                    role="menu"
+                                    aria-orientation="vertical"
+                                    onKeyDown={(e) => {
+                                        const focusableItems = e.currentTarget.querySelectorAll("a");
+                                        const currentIndex = Array.from(focusableItems).indexOf(document.activeElement);
+
+                                        if (e.key === "ArrowDown") {
+                                            e.preventDefault();
+                                            const next = focusableItems[currentIndex + 1] || focusableItems[0];
+                                            next.focus();
                                         }
-                                        onClick={handleMenuClose}
-                                    >
-                                        {item.label}
-                                    </NavLink>
-                                ))}
-                            </div>
+                                        if (e.key === "ArrowUp") {
+                                            e.preventDefault();
+                                            const prev = focusableItems[currentIndex - 1] || focusableItems[focusableItems.length - 1];
+                                            prev.focus();
+                                        }
+                                    }}
+                                >
+                                    {items.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            role="menuitem"
+                                            end
+                                            className={({ isActive }) =>
+                                                `flex items-center pl-8 pr-3 py-2 text-sm rounded-lg transition duration-200 
+      ${isActive
+                                                    ? "bg-blue-600 text-white font-semibold"
+                                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"}`
+                                            }
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ))}
+
+                                </div>
+                            )}
                         </div>
                     );
                 })}

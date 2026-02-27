@@ -1,18 +1,18 @@
 // src/pages/infraestructura/Modelos/ModeloForm.jsx
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    createUbicacion,
-    updateUbicacion,
     buscarSitiosSelect,
-    getSitioById
+    createUbicacion,
+    getSitioById,
+    updateUbicacion
 } from '../../../services/api';
 
 const UbicacionForm = ({ ubicacion, onClose }) => {
     const [opcionesSitio, setOpcionesSitio] = useState([]);
     const [form, setForm] = useState({
         idSitio: '',
-        descripcion: '',
+        descripcionUbicacion: '',
         estado: true,
     });
 
@@ -26,7 +26,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
         if (ubicacion) {
             setForm({
                 idSitio: ubicacion.idSitio?.toString() || '',
-                descripcion: ubicacion.descripcion || '',
+                descripcionUbicacion: ubicacion.descripcionUbicacion || '',
                 estado: ubicacion.estado ?? true
             });
 
@@ -36,7 +36,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
                         getSitioById(ubicacion.idSitio),
                     ]);
 
-                    setOpcionesSitio([{ value: sitio.idSitio, label: sitio.descripcion }]);
+                    setOpcionesSitio([{ value: sitio.idSitio, label: sitio.descripcionSitio }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -51,7 +51,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
         if (ubicacion) {
             setForm({
                 idSitio: ubicacion.idSitio?.toString() || '',
-                descripcion: ubicacion.descripcion || '',
+                descripcionUbicacion: ubicacion.descripcionUbicacion || '',
                 estado: ubicacion.estado ?? true
             });
         }
@@ -69,7 +69,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.descripcion.trim()) {
+        if (!form.descripcionUbicacion.trim()) {
             setError("La descripción de la ubicación no puede estar vacía.");
             return;
         }
@@ -86,7 +86,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
         const payload = {
             ...form,
             idSitio: parseInt(form.idSitio),
-            descripcion: form.descripcion.trim(),
+            descripcionUbicacion: form.descripcionUbicacion.trim(),
             estado: form.estado ?? false
         };
 
@@ -116,7 +116,7 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
 
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Ubicación' : 'Crear Nueva Ubicación'}
             </h2>
@@ -134,14 +134,13 @@ const UbicacionForm = ({ ubicacion, onClose }) => {
             )}
 
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcion"> Descripción de la Ubicación</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcionUbicacion"> Descripción de la Ubicación</label>
                 <input
-                    id="descripcion"
+                    id="descripcionUbicacion"
                     type="text"
-                    name="descripcion"
-                    value={form.descripcion}
+                    name="descripcionUbicacion"
+                    value={form.descripcionUbicacion}
                     onChange={handleChange}
-                    required
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                 />

@@ -2,24 +2,24 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
+    buscarActivosSelect,
     buscarCategoriasSelect,
-    buscarDispositivosSelect,
     buscarUsuarioSelect,
     createIncidencia,
+    getActivosById,
     getCategoriaById,
-    getDispositivoById,
     getUsuarioById,
     updateIncidencia
 } from '../../../services/api';
 
 const IncidenciaForm = ({ incidencia, onClose }) => {
-    const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
+    const [OpcionesActivo, setOpcionesActivo] = useState([]);
     const [OpcionesCategoria, setOpcionesCategoria] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
     // 1. ESTADO INICIAL: Usamos el string '0' como valor inicial seguro
     const [form, setForm] = useState({
-        idDispositivo: '',
+        idActivo: '',
         idCategoria: '',
         idUsuario: '',
         fechaNotificacion: '',
@@ -44,7 +44,7 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
 
 
             setForm({
-                idDispositivo: incidencia.idDispositivo?.toString() ?? '',
+                idActivo: incidencia.idActivo?.toString() ?? '',
                 idCategoria: incidencia.idCategoria?.toString() ?? '',
                 idUsuario: incidencia.idUsuario?.toString() ?? '',
                 fechaNotificacion: formatDate(incidencia.fechaNotificacion) ?? '',
@@ -54,13 +54,13 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [dispositivo, categoria, usuario] = await Promise.all([
-                        getDispositivoById(incidencia.idDispositivo),
+                    const [activo, categoria, usuario] = await Promise.all([
+                        getActivosById(incidencia.idActivo),
                         getCategoriaById(incidencia.idCategoria),
                         getUsuarioById(incidencia.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
+                    setOpcionesActivo([{ value: activo.idActivo, label: activo.nombreIdentificador }]);
                     setOpcionesCategoria([{ value: categoria.idCategoria, label: categoria.descripcion }]);
                     setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
                 } catch (error) {
@@ -91,7 +91,7 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
         e.preventDefault();
 
         // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
-        if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
+        if (!form.idActivo) return setError("Debe seleccionar un activo.");
         if (!form.idCategoria) return setError("Debe seleccionar una categoria.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
         if (!form.fechaNotificacion.trim()) return setError("La fecha de notificación no puede estar vacía.");
@@ -104,7 +104,7 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
 
         // PAYLOAD: Usamos la función safeParseInt para los campos numéricos opcionales.
         const payload = {
-            idDispositivo: safeParseInt(form.idDispositivo),
+            idActivo: safeParseInt(form.idActivo),
             idCategoria: safeParseInt(form.idCategoria),
             idUsuario: safeParseInt(form.idUsuario),
             fechaNotificacion: new Date(form.fechaNotificacion).toISOString(),
@@ -134,7 +134,7 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
     //============================================================================================
 
     return (
-        <form onSubmit={handleSubmit} className="p-2">
+        <form onSubmit={handleSubmit} noValidate className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar incidencia' : 'Crear Nueva Incidencia'}
             </h2>
@@ -154,31 +154,31 @@ const IncidenciaForm = ({ incidencia, onClose }) => {
 
             <div className="mb-4">
                 <div className="mb-4">
-                    {/* Select Dispositivo */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
+                    {/* Select Activo */}
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Activo Asociado</label>
                     <AsyncSelect
                         cacheOptions
                         defaultOptions
                         loadOptions={async (inputValue) => {
-                            const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                            setOpcionesDispositivo(opciones);
+                            const opciones = await buscarActivosSelect(inputValue, 1, 50);
+                            setOpcionesActivo(opciones);
                             return opciones;
                         }}
                         value={
-                            form.idDispositivo
-                                ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
+                            form.idActivo
+                                ? OpcionesActivo.find((o) => o.value === safeParseInt(form.idActivo)) || null
                                 : null
                         }
                         onChange={(opcion) => {
-                            setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
-                            setOpcionesDispositivo((prev) => {
+                            setForm((prev) => ({ ...prev, idActivo: opcion?.value?.toString() ?? '' }));
+                            setOpcionesActivo((prev) => {
                                 if (opcion && !prev.some(o => o.value === opcion.value)) {
                                     return [...prev, opcion];
                                 }
                                 return prev;
                             });
                         }}
-                        placeholder="Buscar y seleccionar dispositivo..."
+                        placeholder="Buscar y seleccionar activo..."
                         isClearable
                         className="mb-4"
                     />

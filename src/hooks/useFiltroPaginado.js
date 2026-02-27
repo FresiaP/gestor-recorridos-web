@@ -3,10 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 /**
  * Hook personalizado para manejar la lógica de paginación, búsqueda y filtros.
  *
- * @param {object} props
- * @param {function} props.fetchFunction - Función asíncrona para obtener datos paginados.
+ * @param {object} props // esta función recibe un objeto llamado props
+ * @param {function} props.fetchFunction - dentro de el props estpa la función fecthFuntion que es asíncrona para obtener datos paginados.
  * @param {function} props.exportFunction - Función asíncrona para exportar datos filtrados.
- * @returns {object} Estado y funciones de control para la UI.
+ * @returns {object} Devuelve un objeto (Estado y funciones de control para la UI).
  */
 export const useFiltroPaginado = ({ fetchFunction, exportFunction }) => {
     // --- ESTADOS BASE ---
@@ -14,7 +14,7 @@ export const useFiltroPaginado = ({ fetchFunction, exportFunction }) => {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
     const [sortColumn, setSortColumn] = useState('');
-const [sortDirection, setSortDirection] = useState('asc');
+    const [sortDirection, setSortDirection] = useState('asc');
 
 
     // --- ESTADOS DE FILTRO Y PAGINACIÓN ---
@@ -24,7 +24,7 @@ const [sortDirection, setSortDirection] = useState('asc');
     const [tamanoPagina, setTamanoPagina] = useState(10);
     const [totalPaginas, setTotalPaginas] = useState(1);
 
-    // 🌟 MODIFICACIÓN CLAVE: Función fetchData más flexible
+    // Función fetchData flexible
     // Acepta los 4 parámetros base, y usa ...args para cualquier otro (ordenarPor, fechas, etc.).
     const fetchData = useCallback(async (page, size, query, estado, ...args) => {
         setCargando(true);
@@ -48,26 +48,28 @@ const [sortDirection, setSortDirection] = useState('asc');
         setPaginaActual(1);
     }, [searchTerm, estadoFiltro]);
 
+
     // Recarga datos cuando cambian la paginación o filtros BASE (Para las entidades que no tienen filtros extras)
     useEffect(() => {
         fetchData(paginaActual, tamanoPagina, searchTerm, estadoFiltro, sortColumn, sortDirection);
     }, [paginaActual, tamanoPagina, searchTerm, estadoFiltro, sortColumn, sortDirection, fetchData]);
 
-// --- EXPORTAR DATOS FLEXIBLE ---
-const handleExport = useCallback(async (filtrosOpcionales = {}) => {
-  try {
-    // Pasa filtros base + ordenación + opcionales
-    await exportFunction({
-      query: searchTerm,
-      estadoFiltro,
-      sortColumn,
-      sortDirection,
-      ...filtrosOpcionales
-    });
-  } catch (err) {
-    alert(`Error al exportar: ${err.message}`);
-  }
-}, [searchTerm, estadoFiltro, sortColumn, sortDirection, exportFunction]);
+
+    // --- EXPORTAR DATOS FLEXIBLE ---
+    const handleExport = useCallback(async (filtrosOpcionales = {}) => {
+        try {
+            // Pasa filtros base + ordenación + opcionales
+            await exportFunction({
+                query: searchTerm,
+                estadoFiltro,
+                sortColumn,
+                sortDirection,
+                ...filtrosOpcionales
+            });
+        } catch (err) {
+            alert(`Error al exportar: ${err.message}`);
+        }
+    }, [searchTerm, estadoFiltro, sortColumn, sortDirection, exportFunction]);
 
 
     // --- NAVEGACIÓN DE PÁGINAS ---
@@ -84,8 +86,10 @@ const handleExport = useCallback(async (filtrosOpcionales = {}) => {
         items,
         cargando,
         error,
+
         searchTerm,
         setSearchTerm,
+
         estadoFiltro,
         setEstadoFiltro,
         paginaActual,
@@ -97,9 +101,9 @@ const handleExport = useCallback(async (filtrosOpcionales = {}) => {
         handleExport,
         handleNextPage,
         handlePrevPage,
-        sortColumn, 
-        setSortColumn, 
-        sortDirection, 
+        sortColumn,
+        setSortColumn,
+        sortDirection,
         setSortDirection
     };
 };

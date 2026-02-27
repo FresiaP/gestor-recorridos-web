@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createSitio, updateSitio } from '../../../services/api';
 
 const SitioForm = ({ sitio, onClose }) => {
@@ -12,7 +12,7 @@ const SitioForm = ({ sitio, onClose }) => {
 
     useEffect(() => {
         if (sitio) {
-            setDescripcion(sitio.descripcion || '');
+            setDescripcion(sitio.descripcionSitio || '');
             setEstado(sitio.estado ?? true);
         } else {
             setEstado(true);
@@ -31,7 +31,7 @@ const SitioForm = ({ sitio, onClose }) => {
         setMensajeExito(null);
 
         const dataToSend = {
-            descripcion: descripcion.trim(),
+            descripcionSitio: descripcion.trim(),
             estado: estado
         };
 
@@ -64,7 +64,7 @@ const SitioForm = ({ sitio, onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Sitio' : 'Crear Nuevo Sitio'}
             </h2>

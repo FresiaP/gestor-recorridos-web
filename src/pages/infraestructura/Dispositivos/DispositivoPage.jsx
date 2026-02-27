@@ -1,8 +1,8 @@
-import { CheckCircleIcon, PencilIcon, TrashIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
-import { deleteDispositivo, exportarDispositivos, getDispositivosPaginados, toggleDispositivoEstado } from '../../../services/api';
+import { deleteDispositivo, exportarDispositivos, getDispositivosPaginados } from '../../../services/api';
 import DispositivoForm from './DispositivoForm';
 
 const DispositivoPage = () => {
@@ -54,27 +54,13 @@ const DispositivoPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleToggleEstado = async (dispositivo) => {
-    const nuevoEstado = !dispositivo.estado;
-    const accion = nuevoEstado ? 'activar' : 'desactivar';
 
-    if (!window.confirm(`¿Estás seguro de que quieres ${accion} el dispositivo "${dispositivo.nombre}"?`)) return;
-
-    try {
-      await toggleDispositivoEstado(dispositivo.idDispositivo, nuevoEstado);
-      alert(`Dispositivo "${dispositivo.nombre}" ${accion}da con éxito.`);
-      await fetchData(paginaActual);
-    } catch (err) {
-      alert(`Error al ${accion}: ${err.message}`);
-    }
-  };
-
-  const handleDelete = async (id, nombre) => {
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar el dispositivo "${nombre}"? Esta acción es irreversible.`)) return;
+  const handleDelete = async (id, nombreIdentificador) => {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar el dispositivo "${nombreIdentificador}"? Esta acción es irreversible.`)) return;
 
     try {
       await deleteDispositivo(id);
-      alert(`Dispositivo "${nombre}" eliminado con éxito.`);
+      alert(`Dispositivo "${nombreIdentificador}" eliminado con éxito.`);
       await fetchData(paginaActual);
     } catch (err) {
       alert(`Error al eliminar: ${err.message}`);
@@ -87,8 +73,7 @@ const DispositivoPage = () => {
     if (dispositivoActualizado) fetchData(paginaActual);
   };
 
-  // --- Renderizado Condicional ---
-  if (cargando) return <div className="p-12 text-gray-500">Cargando dispositivos...</div>;
+  // --- Renderizado---
   if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
   return (
@@ -108,14 +93,13 @@ const DispositivoPage = () => {
             className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Crear Nuevo Dispositivo
+          Nuevo Dispositivo
         </button>
 
         <div className="flex items-center space-x-4">
-          <BuscadorDebounce
+          <BuscadorDebounce className="w-64"
             value={searchTerm}
-            onDebouncedChange={(val) => setSearchTerm(val)}
-            disabled={cargando}
+            onDebouncedChange={setSearchTerm}
             placeholder="Buscar por Nombre, serie..."
           />
 
@@ -156,24 +140,26 @@ const DispositivoPage = () => {
       </div>
 
       {/* TABLA DE DATOS */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto">
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               {[
-                { title: 'ID', key: 'idDispositivo' },
-                { title: 'Nombre', key: 'nombre' },
+
+                { title: 'Nombre', key: 'nombreIdentificador' },
                 { title: 'Serie', key: 'serie' },
+                { title: 'Ip', key: 'ip' },
+                { title: 'Caracteristicas', key: 'caracteristicas' },
                 { title: 'Tipo', key: 'tipo' },
-                { title: 'Categoría', key: 'categoria' },
-                { title: 'Modelo', key: 'modelo' },
-                { title: 'Marca', key: 'marca' },
-                { title: 'Ubicación', key: 'ubicacion' },
-                { title: 'Sitio', key: 'sitio' },
-                { title: 'Contrato', key: 'contrato' },
-                { title: 'Estado', key: 'estado' }
+                { title: 'Categoría', key: 'nombreCategoria' },
+                { title: 'Modelo', key: 'descripcionModelo' },
+                { title: 'Marca', key: 'descripcionMarca' },
+                { title: 'Ubicación', key: 'descripcionUbicacion' },
+                { title: 'Sitio', key: 'descripcionSitio' },
+                { title: 'Contrato', key: 'numeroContrato' },
+                { title: 'Estado', key: 'nombreEstado' }
               ].map(({ title, key }) => (
-                <th key={key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th key={key} className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
                   <div className="flex items-center space-x-1">
                     <span>{title}</span>
                     <button onClick={() => handleSort(key)} className="text-gray-400 hover:text-gray-600">
@@ -197,7 +183,7 @@ const DispositivoPage = () => {
                 </th>
               ))}
 
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="sticky top-0 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
                 Acciones
               </th>
             </tr>
@@ -205,70 +191,65 @@ const DispositivoPage = () => {
 
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {dispositivos.map((d) => (
-              <tr key={d.idDispositivo}>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{d.idDispositivo}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.nombre}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.serie}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.nombreTipo}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcion}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionModelo}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionMarca}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionUbicacion}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionSitio}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.numeroContrato}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${d.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {d.estado ? 'Activa' : 'Inactiva'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right text-sm font-medium">
-
-                  {/* EDITAR */}
-                  <button onClick={() => handleEdit(d)} className="text-indigo-600 hover:text-indigo-900 relative group"
-                  >
-                    <PencilIcon className="h-5 w-5" />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                      Editar
-                    </span>
-                  </button>
-
-                  {/* ACTIVAR/ DESACTIVAR */}
-                  <button onClick={() => handleToggleEstado(d)}
-                    className={`relative group ${d.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                      }`}
-                  >
-                    {d.estado ? (
-                      <XCircleIcon className="h-5 w-5" />
-                    ) : (
-                      <CheckCircleIcon className="h-5 w-5" />
-                    )}
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                      {d.estado ? 'Desactivar' : 'Activar'}
-                    </span>
-                  </button>
-
-                  {/* ELIMINAR */}
-                  <button onClick={() => handleDelete(d.idDispositivo, d.nombre)}
-                    className="text-red-600 hover:text-red-900 relative group"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                      Eliminar
-                    </span>
-                  </button>
+            {cargando ? (
+              <tr>
+                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                  Cargando...
                 </td>
               </tr>
-            ))}
-            {dispositivos.length === 0 && (
+            ) : dispositivos.length === 0 ? (
               <tr>
-                <td colSpan="12" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                   No se encontraron dispositivos.
                 </td>
               </tr>
+            ) : (
+              dispositivos.map((d) => (
+                <tr key={d.idDispositivo}>
+
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.nombreIdentificador}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.serie}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.ip}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.caracteristicas}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.nombreTipo}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.nombreCategoria}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionModelo}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionMarca}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionUbicacion}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.descripcionSitio}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.numeroContrato}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{d.nombreEstado}</td>
+
+                  <td className="px-6 py-4 text-right text-sm font-medium">
+                    <div className="flex justify-end items-center space-x-3">
+                      {/* EDITAR */}
+                      <button
+                        onClick={() => handleEdit(d)}
+                        className="text-indigo-600 hover:text-indigo-900 relative group"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                          Editar
+                        </span>
+                      </button>
+
+                      {/* ELIMINAR */}
+                      <button
+                        onClick={() => handleDelete(d.idDispositivo, d.nombreIdentificador)}
+                        className="text-red-600 hover:text-red-900 relative group"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                          Eliminar
+                        </span>
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>
+              ))
             )}
           </tbody>
         </table>

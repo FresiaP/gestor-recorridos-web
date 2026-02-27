@@ -1,6 +1,7 @@
 // src/pages/auditoria/AuditoriaPage.jsx
 
 import { useCallback, useEffect, useState } from 'react';
+import BuscadorDebounce from '../../components/ui/BuscadorDebounce';
 import {
     exportarAuditorias,
     getAuditoriasPaginadas
@@ -48,8 +49,8 @@ function AuditoriaPage() {
                 page,
                 tamanoPagina,
                 query,
-                fechaDesde, // Si usas MUI DatePicker, puedes usar: fechaDesde?.toISOString().split('T')[0] : ''
-                fechaHasta, // Si usas MUI DatePicker, puedes usar: fechaHasta?.toISOString().split('T')[0] : ''
+                fechaDesde,
+                fechaHasta,
                 moduloFiltro
             );
 
@@ -97,7 +98,7 @@ function AuditoriaPage() {
                 fechaHasta,
                 moduloFiltro
             });
-            // 💡 Aquí puedes mostrar un toast de éxito
+            // Aquí puedes mostrar un toast de éxito
         } catch (err) {
             console.error('Error al exportar:', err);
             alert(`Error de exportación: ${err.message}`);
@@ -135,14 +136,12 @@ function AuditoriaPage() {
             <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
 
                 {/* 1. BÚSQUEDA LIBRE */}
+
                 <div className="w-64">
-                    <input
-                        type="text"
-                        placeholder="Buscar Acción o Detalle..."
+                    <BuscadorDebounce
                         value={query}
-                        onChange={(e) => handleFilterChange(setQuery, e.target.value)}
-                        className="p-2 border border-gray-300 rounded w-full h-[40px] text-sm"
-                        disabled={loading}
+                        onDebouncedChange={(val) => handleFilterChange(setQuery, val)}
+                        placeholder="Buscar Acción o Detalle..."
                     />
                 </div>
 

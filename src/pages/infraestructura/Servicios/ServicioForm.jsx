@@ -4,64 +4,57 @@ import {
     buscarActivosSelect,
     buscarContratosSelect,
     buscarEstadoSelect,
-    buscarModelosSelect,
     buscarTiposSelect,
-    createDispositivo,
+    createServicio,
     getActivosById,
     getContratoById,
     getEstadosById,
-    getModeloById,
     getTipoById,
-    updateDispositivo
+    updateServicio
 } from '../../../services/api';
 
-const DispositivoForm = ({ dispositivo, onClose }) => {
+const ServicioForm = ({ servicio, onClose }) => {
     const [OpcionesTipo, setOpcionesTipo] = useState([]);
-    const [OpcionesModelo, setOpcionesModelo] = useState([]);
     const [OpcionesActivo, setOpcionesActivo] = useState([]);
     const [OpcionesEstado, setOpcionesEstado] = useState([]);
     const [OpcionesContrato, setOpcionesContrato] = useState([]);
     const [form, setForm] = useState({
         idActivo: '',
-        serie: '',
-        ip: '',
         idTipo: '',
-        idModelo: '',
         idContrato: '',
         idEstado: '',
+        capacidad: '',
+        detalles: '',
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!dispositivo;
+    const isEditing = !!servicio;
 
     //Carga de datos foráneos para editar
     useEffect(() => {
-        if (dispositivo) {
+        if (servicio) {
             setForm({
-                idActivo: dispositivo.idActivo?.toString() || '',
-                idTipo: dispositivo.idTipo?.toString() || '',
-                idModelo: dispositivo.idModelo?.toString() || '',
-                idContrato: dispositivo.idContrato?.toString() || '',
-                serie: dispositivo.serie?.toString() || '',
-                ip: dispositivo.ip?.toString() || '',
-                idEstado: dispositivo.IdEstado?.toString() || ''
+                idActivo: servicio.idActivo?.toString() || '',
+                idTipo: servicio.idTipo?.toString() || '',
+                idContrato: servicio.idContrato?.toString() || '',
+                capacidad: servicio.capacidad?.toString() || '',
+                detalles: servicio.detalles?.toString() || '',
+                idEstado: servicio.IdEstado?.toString() || ''
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [activo, tipo, modelo, contrato, estado] = await Promise.all([
-                        getActivosById(dispositivo.idActivo),
-                        getTipoById(dispositivo.idTipo),
-                        getModeloById(dispositivo.idModelo),
-                        getContratoById(dispositivo.idContrato),
-                        getEstadosById(dispositivo.idEstado)
+                    const [activo, tipo, contrato, estado] = await Promise.all([
+                        getActivosById(servicio.idActivo),
+                        getTipoById(servicio.idTipo),
+                        getContratoById(servicio.idContrato),
+                        getEstadosById(servicio.idEstado)
                     ]);
 
                     setOpcionesActivo([{ value: activo.idActivo, label: activo.nombreIdentificador }]);
                     setOpcionesTipo([{ value: tipo.idTipo, label: tipo.nombreTipo }]);
-                    setOpcionesModelo([{ value: modelo.idModelo, label: modelo.descripcionModelo }]);
                     setOpcionesContrato([{ value: contrato.idContrato, label: contrato.numeroContrato }]);
                     setOpcionesEstado([{ value: estado.idEstado, label: estado.nombreEstado }]);
                 } catch (error) {
@@ -71,22 +64,23 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [dispositivo]);
+    }, [servicio]);
+
+
 
     // Carga de datos si estamos editando
     useEffect(() => {
-        if (dispositivo) {
+        if (servicio) {
             setForm({
-                idActivo: dispositivo.idActivo?.toString() || '',
-                idTipo: dispositivo.idTipo?.toString() || '',
-                idModelo: dispositivo.idModelo?.toString() || '',
-                idContrato: dispositivo.idContrato?.toString() || '',
-                serie: dispositivo.serie?.toString() || '',
-                ip: dispositivo.ip?.toString() || '',
-                idEstado: dispositivo.idEstado?.toString() || ''
+                idActivo: servicio.idActivo?.toString() || '',
+                idTipo: servicio.idTipo?.toString() || '',
+                idContrato: servicio.idContrato?.toString() || '',
+                capacidad: servicio.capacidad?.toString() || '',
+                detalles: servicio.detalles?.toString() || '',
+                idEstado: servicio.idEstado?.toString() || ''
             });
         }
-    }, [dispositivo]);
+    }, [servicio]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -100,10 +94,9 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
         e.preventDefault();
 
         if (!form.idActivo) return setError("Debe seleccionar un activo.");
-        if (!form.serie.trim()) return setError("El número de serie no puede estar vacío.");
-        if (!form.ip.trim()) return setError("La ip no puede estar vacío.");
+        if (!form.capacidad.trim()) return setError("La capacidad no puede estar vacía.");
+        if (!form.detalles.trim()) return setError("Debe escribir algún detalle.");
         if (!form.idTipo) return setError("Debe seleccionar el tipo.");
-        if (!form.idModelo) return setError("Debe seleccionar un modelo.");
         if (!form.idContrato) return setError("Debe seleccionar un contrato.");
         if (!form.idEstado) return setError("Debe seleccionar un estado.");
 
@@ -117,25 +110,24 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
             ...form,
             idActivo: parseInt(form.idActivo),
             idTipo: parseInt(form.idTipo),
-            idModelo: parseInt(form.idModelo),
             idContrato: parseInt(form.idContrato),
             idEstado: parseInt(form.idEstado),
-            serie: form.serie.trim(),
-            ip: form.ip.trim(),
+            capacidad: form.capacidad.trim(),
+            detalles: form.detalles.trim(),
 
         };
 
         try {
             if (isEditing) {
-                await updateDispositivo(dispositivo.idDispositivo, payload);
+                await updateServicio(servicio.idServicio, payload);
             } else {
-                await createDispositivo(payload);
+                await createServicio(payload);
             }
 
-            setMensajeExito(`Dispositivo ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
+            setMensajeExito(`Servicio ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el dispositivo.';
+            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el servicio.';
             setError(errorMessage);
         } finally {
             setCargando(false);
@@ -149,7 +141,7 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
     return (
         <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Dispositivo' : 'Crear Nuevo Dispositivo'}
+                {isEditing ? 'Editar Servicio' : 'Crear Nuevo Servicio'}
             </h2>
 
             {error && (
@@ -199,24 +191,24 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
             />
 
             <div className="mb-2">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="serie">Serie</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="capacidad">Capacidad</label>
                 <input
-                    id="serie"
+                    id="capacidad"
                     type="text"
-                    name="serie"
-                    value={form.serie}
+                    name="capacidad"
+                    value={form.capacidad}
                     onChange={handleChange}
                     required
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ip">Ip</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="detalles">Detalles</label>
                 <input
-                    id="ip"
+                    id="detalles"
                     type="text"
-                    name="ip"
-                    value={form.ip}
+                    name="detalles"
+                    value={form.detalles}
                     onChange={handleChange}
                     required
                     disabled={cargando || !!mensajeExito}
@@ -256,38 +248,6 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                     className="mb-2"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2">Modelo Asociado</label>
-                <AsyncSelect
-                    cacheOptions
-                    defaultOptions
-                    loadOptions={async (inputValue) => {
-                        const opciones = await buscarModelosSelect(inputValue, 1, 50);
-                        setOpcionesModelo(opciones);
-                        return opciones;
-                    }}
-                    value={
-                        form.idModelo
-                            ? OpcionesModelo.find((o) => o.value === parseInt(form.idModelo)) || {
-                                value: form.idModelo
-                                    ? OpcionesModelo.find((o) => o.value === parseInt(form.idModelo)) || null
-                                    : null
-                            }
-                            : null
-                    }
-                    onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idModelo: opcion?.value || '' }));
-                        setOpcionesModelo((prev) => {
-                            // si no existe en la lista, la agregamos
-                            if (opcion && !prev.some(o => o.value === opcion.value)) {
-                                return [...prev, opcion];
-                            }
-                            return prev;
-                        });
-                    }}
-                    placeholder="Buscar y seleccionar Modelo..."
-                    isClearable
-                    className="mb-2"
-                />
 
                 <label className="block text-gray-700 text-sm font-bold mb-2">Contrato Asociado</label>
                 <AsyncSelect
@@ -380,4 +340,4 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
 };
 
-export default DispositivoForm;
+export default ServicioForm;

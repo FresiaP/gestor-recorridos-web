@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createMarca, updateMarca } from '../../../services/api';
 
 
@@ -16,7 +16,7 @@ const MarcaForm = ({ marca, onClose }) => {
     useEffect(() => {
         if (marca) {
             // Asignamos el valor recibido: marca.descripcion
-            setDescripcion(marca.descripcion || '');
+            setDescripcion(marca.descripcionMarca || '');
             setEstado(marca.estado ?? true);
         } else {
             // Aseguramos que en modo creación, el estado siempre sea true
@@ -38,7 +38,7 @@ const MarcaForm = ({ marca, onClose }) => {
 
         // Objeto que enviamos a la API
         const dataToSend = {
-            descripcion: descripcion.trim(),
+            descripcionMarca: descripcion.trim(),
             estado: estado
         };
 
@@ -71,7 +71,7 @@ const MarcaForm = ({ marca, onClose }) => {
             } else if (err.message) {
                 errorMessage = err.message;
             }
-            // Usamos un control de errores más robusto
+            // Usamos un control de errores
             setError(errorMessage);
             setCargando(false); // Asegura que el botón se desbloquee si falla
         } finally {
@@ -82,7 +82,7 @@ const MarcaForm = ({ marca, onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Marca' : 'Crear Nueva Marca'}
             </h2>
@@ -90,12 +90,9 @@ const MarcaForm = ({ marca, onClose }) => {
             {/* Manejo de Error */}
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {/* El mensaje de error ahora mostrará "Ya existe una categoría..." si viene del backend */}
                     {error}
                 </div>
             )}
-
-            {/* Manejo de Éxito: Mensaje visible durante el 1.5s antes del cierre */}
             {mensajeExito && (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 animate-pulse">
                     {mensajeExito}
@@ -103,16 +100,15 @@ const MarcaForm = ({ marca, onClose }) => {
             )}
 
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcion">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcionMarca">
                     Descripción de la Marca
                 </label>
                 <input
-                    id="descripcion"
+                    id="descripcionMarca"
                     type="text"
-                    name="descripcion"
+                    name="descripcionMarca"
                     value={descripcion}
                     onChange={(e) => setDescripcion(e.target.value)}
-                    required
                     disabled={cargando || !!mensajeExito}
                     className="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring focus:ring-indigo-200 transition duration-150"
                 />

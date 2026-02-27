@@ -36,17 +36,10 @@ const ContratosPage = () => {
                 tipoBusquedaFecha === 'inicio' ? fechaInicio?.toISOString().split('T')[0] : null;
             const fechaFinParam =
                 tipoBusquedaFecha === 'inicio' ? fechaFin?.toISOString().split('T')[0] : null;
-
             const fechaInicioFinParam =
                 tipoBusquedaFecha === 'fin' ? fechaInicio?.toISOString().split('T')[0] : null;
             const fechaFinFinParam =
                 tipoBusquedaFecha === 'fin' ? fechaFin?.toISOString().split('T')[0] : null;
-
-            console.log('Buscando contratos con:', {
-                tipoBusquedaFecha,
-                fechaInicio: fechaInicio?.toISOString().split('T')[0],
-                fechaFin: fechaFin?.toISOString().split('T')[0],
-            });
 
             const data = await getContratosPaginadas(
                 page,
@@ -171,7 +164,6 @@ const ContratosPage = () => {
 
 
     // --- Renderizado Condicional ---
-    if (cargando) { return (<div className="p-12 text-gray-500">Cargando contratos...</div>); }
     if (error) { return (<div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>); }
 
     return (
@@ -183,7 +175,7 @@ const ContratosPage = () => {
                 <button
                     onClick={handleCreate}
                     className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 
-             text-white font-medium px-5 py-2.5 rounded-lg shadow-md 
+             text-white font-medium py-2 px-2 rounded-lg shadow-md 
              transition-all duration-200 ease-in-out transform hover:scale-105"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -191,7 +183,7 @@ const ContratosPage = () => {
                         className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Crear Nuevo Contrato
+                    Nuevo Contrato
                 </button>
 
 
@@ -208,10 +200,9 @@ const ContratosPage = () => {
                     </select>
 
                     {tipoBusquedaFecha === "texto" && (
-                        <BuscadorDebounce
+                        <BuscadorDebounce className="w-64"
                             value={searchTerm}
-                            onDebouncedChange={(val) => setSearchTerm(val)}
-                            disabled={cargando}
+                            onDebouncedChange={setSearchTerm}
                             placeholder="Buscar por número, proveedor, estado, fecha..."
                         />
                     )}
@@ -294,80 +285,87 @@ const ContratosPage = () => {
 
 
             {mensaje && (
-                <div className="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                <div className="mt-4 bg-green-100 border border-green-400 text-green-700 py-2 px-6 rounded">
                     {mensaje}
                 </div>
             )}
 
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detalles</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Inicio</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Fin</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impresiones /C BW</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impresiones /C C.</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Exc BW</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo Exc C.</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Proveedor</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Número</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Monto</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Detalles</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Fecha Inicio</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Fecha Fin</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Impresiones /C BW</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Impresiones /C C.</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Costo Exc BW</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Costo Exc C.</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Estado</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {contratos.map((c) => (
-                            <tr key={c.idContrato}>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.idContrato}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.nombreProveedor}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.numeroContrato}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.montoContrato}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.detalles}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.fechaInicio?.slice(0, 10)}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.fechaFin?.slice(0, 10)}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.bolsonImpresionesCopiasBw ?? '—'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.bolsonImpresionesCopiasColor ?? '—'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteBw ?? '—'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteColor ?? '—'}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{c.nombreEstado}</td>
-
-
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-3">
-                                    <button
-                                        onClick={() => handleEdit(c)}
-                                        className="text-indigo-600 hover:text-indigo-900 relative group"
-                                    >
-                                        <PencilIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                        bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Editar
-                                        </span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleDelete(c.idContrato, c.numeroContrato)}
-                                        className="text-red-600 hover:text-red-900 relative group"
-                                    >
-                                        <TrashIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                     bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Eliminar
-                                        </span>
-                                    </button>
+                        {cargando ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                                    Cargando...
                                 </td>
                             </tr>
-                        ))}
-                        {contratos.length === 0 && (
+                        ) : contratos.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                                     No se encontraron contratos.
                                 </td>
                             </tr>
+                        ) : (
+                            contratos.map((c) => (
+                                <tr key={c.idContrato}>
+
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreProveedor}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.numeroContrato}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.montoContrato}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.detalles}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaInicio?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaFin?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.bolsonImpresionesCopiasBw ?? '—'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.bolsonImpresionesCopiasColor ?? '—'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteBw ?? '—'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.detalleImpresion?.costoExcedenteColor ?? '—'}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreEstado}</td>
+
+
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-3">
+                                        <button
+                                            onClick={() => handleEdit(c)}
+                                            className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                        bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleDelete(c.idContrato, c.numeroContrato)}
+                                            className="text-red-600 hover:text-red-900 relative group"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                     bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>

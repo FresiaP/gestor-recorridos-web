@@ -4,7 +4,7 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    buscarDispositivosSelect,
+    buscarActivosSelect,
     buscarUsuarioSelect,
     deleteIncidencia,
     exportarIncidencias,
@@ -18,7 +18,7 @@ const IncidenciaPage = () => {
     const [error, setError] = useState(null);
 
     // --- ESTADOS PARA FILTROS AVANZADOS ---
-    const [criterioBusqueda, setCriterioBusqueda] = useState("dispositivo");
+    const [criterioBusqueda, setCriterioBusqueda] = useState("activo");
     const [opcionesBusqueda, setOpcionesBusqueda] = useState([]);
     const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
     const [resueltas, setResueltas] = useState(null);
@@ -42,8 +42,8 @@ const IncidenciaPage = () => {
             setElementoSeleccionado(null);
             try {
                 let data = [];
-                if (criterioBusqueda === "dispositivo") {
-                    data = await buscarDispositivosSelect();
+                if (criterioBusqueda === "activo") {
+                    data = await buscarActivosSelect();
                 } else if (criterioBusqueda === "usuario") {
                     data = await buscarUsuarioSelect();
                 }
@@ -186,7 +186,7 @@ const IncidenciaPage = () => {
                             className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Crear Nueva Incidencia
+                        Nueva Incidencia
                     </button>
                 </div>
 
@@ -201,7 +201,7 @@ const IncidenciaPage = () => {
                             onChange={(e) => setCriterioBusqueda(e.target.value)}
                             className="border border-gray-300 rounded-lg p-2 text-sm shadow-sm bg-white h-[40px] min-w-[120px]"
                         >
-                            <option value="dispositivo">Dispositivo</option>
+                            <option value="activo">Activo</option>
                             <option value="usuario">Usuario</option>
                         </select>
                     </div>
@@ -219,7 +219,7 @@ const IncidenciaPage = () => {
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
-                                    label={`Seleccionar ${criterioBusqueda === 'dispositivo' ? 'Dispositivo' : 'Usuario'}`}
+                                    label={`Seleccionar ${criterioBusqueda === 'activo' ? 'Activo' : 'Usuario'}`}
                                     variant="outlined"
                                     size="small"
                                     placeholder={`Escribe para buscar ${criterioBusqueda}...`}
@@ -270,8 +270,6 @@ const IncidenciaPage = () => {
 
                         </div>
                     </LocalizationProvider>
-
-
 
                     {/* 4. BOTONES Y SELECTOR DE FILAS */}
                     <div className="flex items-center gap-2 ml-auto">
@@ -324,8 +322,8 @@ const IncidenciaPage = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dispositivo</th>
+
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Activo</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Notificación</th>
@@ -337,32 +335,36 @@ const IncidenciaPage = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {incidencias.map((i) => (
                                 <tr key={i.idIncidencia}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{i.idIncidencia}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{i.nombre}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{i.descripcion}</td>
+
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.nombreIdentificador}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{i.nombreCategoria}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{i.nombreApellido}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{i.fechaNotificacion?.slice(0, 10)}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{i.detalle}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{i.resuelta ? "Sí" : "No"}</td>
-
-                                    <td className="px-6 py-4 text-right text-sm font-medium">
-
+                                    <td className="px-6 py-4 text-right text-sm font-medium flex gap-2 justify-end">
                                         {/* EDITAR */}
-                                        <button onClick={() => handleEdit(i)} className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        <button
+                                            onClick={() => handleEdit(i)}
+                                            aria-label="Editar incidencia"
+                                            className="text-indigo-600 hover:text-indigo-900 relative group"
                                         >
                                             <PencilIcon className="h-5 w-5" />
                                             <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+            bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
                                                 Editar
                                             </span>
                                         </button>
 
                                         {/* ELIMINAR */}
-                                        <button onClick={() => handleDelete(i.idIncidencia, i.nombre)} className="text-red-600 hover:text-red-900 relative group"
+                                        <button
+                                            onClick={() => handleDelete(i.idIncidencia, i.detalle)}
+                                            aria-label="Eliminar incidencia"
+                                            className="text-red-600 hover:text-red-900 relative group"
                                         >
                                             <TrashIcon className="h-5 w-5" />
                                             <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+            bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
                                                 Eliminar
                                             </span>
                                         </button>
@@ -377,6 +379,7 @@ const IncidenciaPage = () => {
                                 </tr>
                             )}
                         </tbody>
+
                     </table>
                 )}
             </div>

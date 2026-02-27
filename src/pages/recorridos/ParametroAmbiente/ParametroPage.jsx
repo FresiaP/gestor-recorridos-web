@@ -185,7 +185,7 @@ const ParametroPage = () => {
                             className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Crear Nuevo parámetro
+                        Nuevo parámetro
                     </button>
                 </div>
 
@@ -298,14 +298,14 @@ const ParametroPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 {cargando ? (
                     <div className="p-12 text-center text-gray-500">Cargando datos...</div>
                 ) : (
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="sticky top-0 bg-gray-50 z-10">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sitio</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
@@ -319,7 +319,7 @@ const ParametroPage = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {parametros.map((p) => (
                                 <tr key={p.idParametroAmbiente}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.idParametroAmbiente}</td>
+
                                     <td className="px-6 py-4 text-sm text-gray-500">{p.descripcionUbicacion}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{p.descripcionSitio}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{p.nombreApellido}</td>

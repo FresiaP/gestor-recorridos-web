@@ -30,6 +30,8 @@ const ConsumiblePage = () => {
     const [paginaActual, setPaginaActual] = useState(1);
     const [tamanoPagina, setTamanoPagina] = useState(10);
     const [totalPaginas, setTotalPaginas] = useState(1);
+    const [totalRegistros, setTotalRegistros] = useState(0);
+
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [consumibleEditando, setConsumibleEditando] = useState(null);
@@ -76,6 +78,8 @@ const ConsumiblePage = () => {
 
             setConsumibles(Array.isArray(data.datos) ? data.datos : []);
             setTotalPaginas(data.totalPaginas || 1);
+            setTotalRegistros(data.totalRegistros || 0);
+
         } catch (err) {
             setError(err.message || 'Fallo al cargar los consumibles paginados.');
         } finally {
@@ -158,6 +162,10 @@ const ConsumiblePage = () => {
             setPaginaActual(prev => prev - 1);
         }
     };
+
+    const inicio = totalRegistros === 0 ? 0 : (paginaActual - 1) * tamanoPagina + 1;
+    const fin = Math.min(paginaActual * tamanoPagina, totalRegistros);
+
     // -------------------------------
 
     // Renderizado Condicional de Error
@@ -182,7 +190,7 @@ const ConsumiblePage = () => {
                             className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Crear Nuevo consumible
+                        Nuevo consumible
                     </button>
                 </div>
 
@@ -293,67 +301,84 @@ const ConsumiblePage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
+            <div className="flex justify-between text-sm text-gray-600 mt-4">
+
+                <span>
+                    Mostrando {inicio}-{fin} de {totalRegistros} registros
+                </span>
+
+                <span>
+                    Página {paginaActual} de {totalPaginas}
+                </span>
+
+            </div>
+
+            {/* TABLA DE DATOS */}
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 {cargando ? (
                     <div className="p-12 text-center text-gray-500">Cargando datos...</div>
                 ) : (
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Impresora</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Lectura</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amarillo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Magenta</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cian</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Negro</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Residuos</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Impresora</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Técnico</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Fecha Lectura</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Amarillo</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Magenta</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Cian</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Negro</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Residuos</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Alim.</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Mantto.</th>
+                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase z-10">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {consumibles.map((c) => (
                                 <tr key={c.idConsumible}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.idConsumible}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombre}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreIdentificador}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.fechaLectura?.slice(0, 10)}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {c.fechaLectura
+                                            ? new Date(c.fechaLectura).toLocaleString("es-NI", {
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                second: "2-digit",
+                                            })
+                                            : ""}
+                                    </td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoAmarillo}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoMagenta}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoCian}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.cartuchoNegro}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.contenedorResiduos}</td>
-
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.kitAlimentador}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.kitMantenimiento}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-
-                                        {/* EDITAR */}
-                                        <button onClick={() => handleEdit(c)}
-                                            className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        <button
+                                            onClick={() => handleEdit(c)}
+                                            className="text-indigo-600 hover:text-indigo-900"
                                         >
                                             <PencilIcon className="h-5 w-5" />
-                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                                Editar
-                                            </span>
                                         </button>
-
-                                        {/* ELIMINAR */}
-                                        <button onClick={() => handleDelete(c.idConsumible, c.nombre)}
-                                            className="text-red-600 hover:text-red-900 relative group"
+                                        <button
+                                            onClick={() => handleDelete(c.idConsumible, c.nombre)}
+                                            className="text-red-600 hover:text-red-900"
                                         >
                                             <TrashIcon className="h-5 w-5" />
-                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                                Eliminar
-                                            </span>
                                         </button>
                                     </td>
                                 </tr>
+
                             ))}
+
                             {consumibles.length === 0 && (
                                 <tr>
-                                    <td colSpan="10" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan="11" className="px-6 py-4 text-center text-gray-500">
                                         No se encontraron consumibles con estos filtros.
                                     </td>
                                 </tr>

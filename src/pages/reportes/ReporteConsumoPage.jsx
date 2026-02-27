@@ -210,10 +210,10 @@ const ReporteConsumoPage = () => {
             )}
 
             {/* TABLA DE RESULTADOS */}
-            <div className="bg-white shadow-md overflow-x-auto rounded-lg border border-gray-200">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <div className="overflow-x-auto shadow-lg rounded-lg">
                     <table className="min-w-full table-auto text-sm text-left">
-                        <thead className="bg-blue-800 text-white">
+                        <thead className="sticky top-0 bg-blue-800 text-white z-10">
                             <tr>
                                 <th rowSpan="2" className="px-4 py-2 border">Hardware (Modelo)</th>
                                 <th rowSpan="2" className="px-4 py-2 border">Impresora</th>

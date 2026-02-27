@@ -1,10 +1,11 @@
-// src/pages/recorridos/Consumibles/ConsumibleForm.jsx
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
     buscarDispositivosSelect,
     buscarUsuarioSelect,
     createConsumo,
+    extraerConsumos,
+    extraerYGuardar,
     getDispositivoById,
     getUsuarioById,
     updateConsumo
@@ -14,7 +15,6 @@ const ConsumoForm = ({ consumo, onClose }) => {
     const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
-    // 1. ESTADO INICIAL: Usamos el string '0' como valor inicial seguro
     const [form, setForm] = useState({
         idDispositivo: '',
         idUsuario: '',
@@ -23,6 +23,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
         impresionColor: '0',
         copiaBw: '0',
         impresionBw: '0',
+        ip: ''
     });
 
     const [cargando, setCargando] = useState(false);
@@ -30,17 +31,23 @@ const ConsumoForm = ({ consumo, onClose }) => {
     const [mensajeExito, setMensajeExito] = useState(null);
     const isEditing = !!consumo;
 
-    // Carga de datos si estamos editando
+    // Función para limpiar valores numéricos
+    const parseValue = (val) => {
+        if (!val) return "0";
+        const num = parseFloat(val.replace(/,/g, ""));
+        return isNaN(num) ? "0" : num.toString();
+    };
+
     useEffect(() => {
         if (consumo) {
             const formatDate = (fecha) => {
                 if (!fecha) return '';
                 const date = new Date(fecha);
-                return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
+                return date.toISOString().split('T')[0];
             };
 
-
-            setForm({
+            setForm(prev => ({
+                ...prev,
                 idDispositivo: consumo.idDispositivo?.toString() ?? '',
                 idUsuario: consumo.idUsuario?.toString() ?? '',
                 fechaLectura: formatDate(consumo.fechaLectura) ?? '',
@@ -48,7 +55,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 impresionColor: consumo.impresionColor?.toString() ?? '0',
                 copiaBw: consumo.copiaBw?.toString() ?? '0',
                 impresionBw: consumo.impresionBw?.toString() ?? '0'
-            });
+            }));
 
             const cargarDatosForaneos = async () => {
                 try {
@@ -57,8 +64,10 @@ const ConsumoForm = ({ consumo, onClose }) => {
                         getUsuarioById(consumo.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
+                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombreIdentificador }]);
                     setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
+
+                    setForm(prev => ({ ...prev, ip: dispositivo.ip ?? '' }));
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -68,40 +77,31 @@ const ConsumoForm = ({ consumo, onClose }) => {
         }
     }, [consumo]);
 
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
-    // FUNCIÓN HELPER: Convierte la cadena a entero, si está vacía, devuelve 0.
     const safeParseInt = (value) => {
         const trimmedValue = value?.trim();
-        if (trimmedValue === '' || trimmedValue === null || trimmedValue === undefined) {
-            return 0; // Monocromática: se envía 0 si el campo está vacío.
-        }
-        return parseInt(trimmedValue, 10) || 0; // Parsea a int o devuelve 0 si no es un número.
+        if (!trimmedValue) return 0;
+        return parseInt(trimmedValue, 10) || 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
         if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
         if (!form.fechaLectura.trim()) return setError("La fecha de lectura no puede estar vacía.");
-
-        // La validación de cartuchos de color se relaja para permitir el envío de "" (vacío) o "0"
 
         setCargando(true);
         setError(null);
         setMensajeExito(null);
 
-        // PAYLOAD: Usamos la función safeParseInt para los campos numéricos opcionales.
         const payload = {
             idDispositivo: safeParseInt(form.idDispositivo),
             idUsuario: safeParseInt(form.idUsuario),
-            FechaLectura: form.FechaLectura ?? form.fechaLectura,
+            fechaLectura: form.fechaLectura,
             copiaColor: safeParseInt(form.copiaColor),
             impresionColor: safeParseInt(form.impresionColor),
             copiaBw: safeParseInt(form.copiaBw),
@@ -114,7 +114,6 @@ const ConsumoForm = ({ consumo, onClose }) => {
             } else {
                 await createConsumo(payload);
             }
-
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
@@ -126,9 +125,8 @@ const ConsumoForm = ({ consumo, onClose }) => {
     };
 
     //=============================================================================================
-    //Renderizado
-    //============================================================================================
-
+    // Renderizado
+    //=============================================================================================
     return (
         <form onSubmit={handleSubmit} className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
@@ -140,142 +138,167 @@ const ConsumoForm = ({ consumo, onClose }) => {
                     {error}
                 </div>
             )}
-
             {mensajeExito && (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 animate-pulse">
                     {mensajeExito}
                 </div>
             )}
 
-
-            <div className="mb-4">
-                <div className="mb-4">
-                    {/* Select Dispositivo */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
-                    <AsyncSelect
-                        cacheOptions
-                        defaultOptions
-                        loadOptions={async (inputValue) => {
-                            const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                            setOpcionesDispositivo(opciones);
-                            return opciones;
-                        }}
-                        value={
-                            form.idDispositivo
-                                ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
-                                : null
+            {/* Select Dispositivo */}
+            <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
+            <AsyncSelect
+                cacheOptions
+                defaultOptions
+                loadOptions={async (inputValue) => {
+                    const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
+                    setOpcionesDispositivo(opciones);
+                    return opciones;
+                }}
+                options={OpcionesDispositivo}
+                value={
+                    form.idDispositivo
+                        ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
+                        : null
+                }
+                onChange={async (opcion) => {
+                    setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
+                    if (opcion) {
+                        try {
+                            const dispositivo = await getDispositivoById(opcion.value);
+                            setForm((prev) => ({ ...prev, ip: dispositivo.ip ?? '' }));
+                        } catch (error) {
+                            console.error("Error al obtener IP del dispositivo:", error);
                         }
-                        onChange={(opcion) => {
-                            setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
-                            setOpcionesDispositivo((prev) => {
-                                if (opcion && !prev.some(o => o.value === opcion.value)) {
-                                    return [...prev, opcion];
-                                }
-                                return prev;
-                            });
-                        }}
-                        placeholder="Buscar y seleccionar dispositivo..."
-                        isClearable
-                        className="mb-4"
-                    />
+                    }
+                }}
+                placeholder="Buscar y seleccionar dispositivo..."
+                isClearable
+                className="mb-4"
+            />
 
-                    {/* Select Usuario */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Técnico Asociado</label>
-                    <AsyncSelect
-                        cacheOptions
-                        defaultOptions
-                        loadOptions={async (inputValue) => {
-                            const opciones = await buscarUsuarioSelect(inputValue, 1, 50);
-                            setOpcionesUsuario(opciones);
-                            return opciones;
-                        }}
-                        value={
-                            form.idUsuario
-                                ? OpcionesUsuario.find((o) => o.value === safeParseInt(form.idUsuario)) || null
-                                : null
+            {/* Select Usuario */}
+            <label className="block text-gray-700 text-sm font-bold mb-2">Técnico Asociado</label>
+            <AsyncSelect
+                cacheOptions
+                defaultOptions
+                loadOptions={async (inputValue) => {
+                    const opciones = await buscarUsuarioSelect(inputValue, 1, 50);
+                    setOpcionesUsuario(opciones);
+                    return opciones;
+                }}
+                options={OpcionesUsuario}
+                value={
+                    form.idUsuario
+                        ? OpcionesUsuario.find((o) => o.value === safeParseInt(form.idUsuario)) || null
+                        : null
+                }
+                onChange={(opcion) => {
+                    setForm((prev) => ({ ...prev, idUsuario: opcion?.value?.toString() ?? '' }));
+                }}
+                placeholder="Buscar y seleccionar Técnico..."
+                isClearable
+                className="mb-4"
+            />
+
+            {/* Botón Extraer */}
+            <div className="flex justify-center gap-3 mt-4">
+                <button
+                    type="button"
+                    onClick={async () => {
+                        try {
+                            const data = await extraerConsumos(form.ip);
+                            setForm(prev => ({
+                                ...prev,
+                                copiaColor: parseValue(data.copiasColor),
+                                impresionColor: parseValue(data.impresionesColor),
+                                copiaBw: parseValue(data.copiasMonocromo),
+                                impresionBw: parseValue(data.impresionesMonocromo)
+                            }));
+                        } catch (err) {
+                            // El middleware ya devuelve { error, statusCode }
+                            setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
                         }
-                        onChange={(opcion) => {
-                            setForm((prev) => ({ ...prev, idUsuario: opcion?.value?.toString() ?? '' }));
-                            setOpcionesUsuario((prev) => {
-                                if (opcion && !prev.some(o => o.value === opcion.value)) {
-                                    return [...prev, opcion];
-                                }
-                                return prev;
-                            });
-                        }}
-                        placeholder="Buscar y seleccionar Técnico..."
-                        isClearable
-                        className="mb-4"
-                    />
-                </div>
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded"
+                    disabled={!form.idDispositivo || !form.idUsuario}
+                >
+                    Extraer desde impresora
+                </button>
 
-                {/* Input Fecha Lectura */}
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Lectura</label>
-                <input
-                    type="date"
-                    name="fechaLectura"
-                    value={form.fechaLectura}
-                    onChange={handleChange}
-                    required
-                    className="w-full border rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Copia Color */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="copiaColor">Copia Color (Opcional)</label>
-                <input
-                    id="copiaColor"
-                    type="number"
-                    name="copiaColor"
-                    value={form.copiaColor}
-                    onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Impresión a Color */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="impresionColor">Impr. Color (Opcional)</label>
-                <input
-                    id="impresionColor"
-                    type="number"
-                    name="impresionColor"
-                    value={form.impresionColor}
-                    onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Copia BW */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="copiaBw">Copia Bw (Opcional)</label>
-                <input
-                    id="copiaBw"
-                    type="number"
-                    name="copiaBw"
-                    value={form.copiaBw}
-                    onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Cartucho Negro */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="impresionBw">Impr. Bw</label>
-                <input
-                    id="impresionBw"
-                    type="number"
-                    name="impresionBw"
-                    value={form.impresionBw}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
+                {/* Botón Extraer y Guardar */}
+                <button
+                    type="button"
+                    onClick={async () => {
+                        try {
+                            const creado = await extraerYGuardar(
+                                form.ip,
+                                safeParseInt(form.idDispositivo),
+                                safeParseInt(form.idUsuario)
+                            );
+                            setMensajeExito(`Consumo guardado automáticamente con ID ${creado.idConsumo}`);
+                            setTimeout(() => onClose(true), 1500);
+                        } catch (err) {
+                            setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                        }
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    disabled={!form.idDispositivo || !form.idUsuario}
+                >
+                    Extraer y Guardar
+                </button>
             </div>
 
+            {/* Inputs de fecha y contadores */}
+            <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Lectura</label>
+            <input
+                type="date"
+                name="fechaLectura"
+                value={form.fechaLectura}
+                onChange={handleChange}
+                required
+                className="w-full border rounded px-3 py-2 mb-4"
+            />
+
+            <label className="block text-gray-700 text-sm font-bold mb-2">Copia Color</label>
+            <input
+                type="number"
+                name="copiaColor"
+                value={form.copiaColor}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 mb-4"
+            />
+
+            <label className="block text-gray-700 text-sm font-bold mb-2">Impr. Color</label>
+            <input
+                type="number"
+                name="impresionColor"
+                value={form.impresionColor}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 mb-4"
+            />
+
+            <label className="block text-gray-700 text-sm font-bold mb-2">Copia BW</label>
+            <input
+                type="number"
+                name="copiaBw"
+                value={form.copiaBw}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 mb-4"
+            />
+
+            <label className="block text-gray-700 text-sm font-bold mb-2">Impr. BW</label>
+            <input
+                type="number"
+                name="impresionBw"
+                value={form.impresionBw}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 mb-4"
+            />
 
             <div className="flex items-center justify-between mt-6">
                 <button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition duration-150"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
                     disabled={cargando || !!mensajeExito}
                 >
                     {cargando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar')}

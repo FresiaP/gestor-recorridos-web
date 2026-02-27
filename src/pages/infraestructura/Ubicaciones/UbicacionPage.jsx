@@ -43,24 +43,25 @@ const UbicacionesPage = () => {
 
     const handleToggleEstado = async (ubicacion) => {
         const nuevoEstado = !ubicacion.estado;
-        const accion = nuevoEstado ? 'activar' : 'desactivar';
+        const mensajeConfirmacion = nuevoEstado ? 'activar' : 'desactivar';
+        const mensajeAccion = nuevoEstado ? 'activada' : 'desactivada';
 
-        if (!window.confirm(`¿Estás seguro de que quieres ${accion} la ubicación "${ubicacion.descripcion}"?`)) return;
+        if (!window.confirm(`¿Estás seguro de que quieres ${mensajeConfirmacion} la Ubicación "${ubicacion.descripcionUbicacion}"?`)) return;
 
         try {
             await toggleUbicacionEstado(ubicacion.idUbicacion, nuevoEstado);
-            alert(`Ubicación "${ubicacion.descripcion}" ${accion}da con éxito.`);
+            alert(`Ubicación "${ubicacion.descripcionUbicacion}" ${mensajeAccion} con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
-            alert(`Error al ${accion}: ${err.message}`);
+            alert(`Error al cambiar estado: ${err.message}`);
         }
     };
-    const handleDelete = async (id, descripcion) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${descripcion}"? Esta acción es irreversible.`)) return;
+    const handleDelete = async (id, descripcionUbicacion) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${descripcionUbicacion}"? Esta acción es irreversible.`)) return;
 
         try {
             await deleteUbicacion(id);
-            alert(`Ubicación "${descripcion}" eliminada con éxito.`);
+            alert(`Ubicación "${descripcionUbicacion}" eliminada con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
@@ -74,8 +75,7 @@ const UbicacionesPage = () => {
     };
 
 
-    // --- Renderizado Condicional ---
-    if (cargando) return <div className="p-12 text-gray-500">Cargando ubicaciones...</div>;
+    // --- Renderizado ---
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
@@ -95,14 +95,13 @@ const UbicacionesPage = () => {
                         className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Crear Nueva Ubicación
+                    Nueva Ubicación
                 </button>
                 {/* BUSCADOR*/}
                 <div className="flex items-center space-x-4">
                     <BuscadorDebounce
                         value={searchTerm}
-                        onDebouncedChange={(val) => setSearchTerm(val)}
-                        disabled={cargando}
+                        onDebouncedChange={setSearchTerm}
                         placeholder="Buscar por Nombre o sitio..."
                     />
 
@@ -144,80 +143,87 @@ const UbicacionesPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="sticky top-0 bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitio</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Ubicación</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Sitio</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Estado</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-200">
-                        {ubicaciones.map((ubicacion) => (
-                            <tr key={ubicacion.idUbicacion}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ubicacion.idUbicacion}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ubicacion.descripcion}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ubicacion.sitioDescripcion}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ubicacion.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {ubicacion.estado ? 'Activa' : 'Inactiva'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-
-                                    {/* EDITAR */}
-                                    <button
-                                        onClick={() => handleEdit(ubicacion)}
-                                        className="text-indigo-600 hover:text-indigo-900 mr-3 relative group"
-                                    >
-                                        <PencilIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Editar
-                                        </span>
-                                    </button>
-
-                                    {/* ACTIVAR/ DESACTIVAR */}
-                                    <button
-                                        onClick={() => handleToggleEstado(ubicacion)}
-                                        className={`relative group ${ubicacion.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-
-                                            }`}
-                                    >
-                                        {ubicacion.estado ? (
-                                            <XCircleIcon className="h-5 w-5" />
-                                        ) : (
-                                            <CheckCircleIcon className="h-5 w-5" />
-                                        )}
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            {ubicacion.estado ? 'Desactivar' : 'Activar'}
-                                        </span>
-                                    </button>
-
-                                    {/* ELIMINAR */}
-                                    <button
-                                        onClick={() => handleDelete(ubicacion.idUbicacion, ubicacion.descripcion)}
-                                        className="text-red-600 hover:text-red-900 relative group"
-                                    >
-                                        <TrashIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Eliminar
-                                        </span>
-                                    </button>
+                        {cargando ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                                    Cargando...
                                 </td>
                             </tr>
-                        ))}
-                        {ubicaciones.length === 0 && !cargando && (
+                        ) : ubicaciones.length === 0 ? (
                             <tr>
                                 <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                                     No se encontraron ubicaciones.
                                 </td>
                             </tr>
+                        ) : (
+                            ubicaciones.map((ubicacion) => (
+                                <tr key={ubicacion.idUbicacion}>
+
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ubicacion.descripcionUbicacion}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ubicacion.descripcionSitio}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ubicacion.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {ubicacion.estado ? 'Activa' : 'Inactiva'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+                                        {/* EDITAR */}
+                                        <button
+                                            onClick={() => handleEdit(ubicacion)}
+                                            className="text-indigo-600 hover:text-indigo-900 mr-3 relative group"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
+                                        </button>
+
+                                        {/* ACTIVAR/ DESACTIVAR */}
+                                        <button
+                                            onClick={() => handleToggleEstado(ubicacion)}
+                                            className={`relative group ${ubicacion.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+
+                                                }`}
+                                        >
+                                            {ubicacion.estado ? (
+                                                <XCircleIcon className="h-5 w-5" />
+                                            ) : (
+                                                <CheckCircleIcon className="h-5 w-5" />
+                                            )}
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                {ubicacion.estado ? 'Desactivar' : 'Activar'}
+                                            </span>
+                                        </button>
+
+                                        {/* ELIMINAR */}
+                                        <button
+                                            onClick={() => handleDelete(ubicacion.idUbicacion, ubicacion.descripcionUbicacion)}
+                                            className="text-red-600 hover:text-red-900 relative group"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>

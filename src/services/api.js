@@ -1,10 +1,9 @@
 // src/services/api.js
-//import { queries } from '@testing-library/dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 // URL base de tu backend C#
-const BASE_URL = 'http://10.70.56.217:5010/api';
+const BASE_URL = 'http://localhost:5010/api';
 
 // =======================================================================
 // UTILERÍAS DE TOKEN
@@ -37,8 +36,8 @@ api.interceptors.request.use(config => {
 }, error => Promise.reject(error));
 
 // ======================================================================= 
-// // INTERCEPTOR DE RESPUESTAS PARA REFRESH TOKEN 
-// // ======================================================================= 
+// INTERCEPTOR DE RESPUESTAS PARA REFRESH TOKEN 
+// ======================================================================= 
 api.interceptors.response.use(
     response => response,
     async error => {
@@ -48,7 +47,8 @@ api.interceptors.response.use(
             const refreshToken = getRefreshToken();
             if (refreshToken) {
                 try {
-                    const res = await api.post('/usuarios/refresh', refreshToken, {
+                    // CORREGIDO: enviar objeto JSON con refreshToken
+                    const res = await api.post('/auth/refresh', { refreshToken }, {
                         headers: { 'Content-Type': 'application/json' }
                     });
                     const { token, refreshToken: newRefreshToken } = res.data;
@@ -69,20 +69,18 @@ api.interceptors.response.use(
 // =======================================================================
 const extractErrorMessage = (error, defaultMessage = 'Error de conexión o servidor.') => {
     if (error.response && error.response.data) {
-        // 1. Captura el mensaje de error de unicidad enviado por C# (ej: { error: "Ya existe..." })
-        if (error.response.data.error) {
-            return error.response.data.error;
+        const data = error.response.data;
+
+        if (data.errors) {
+            const firstKey = Object.keys(data.errors)[0];
+            if (firstKey && data.errors[firstKey].length > 0) {
+                return data.errors[firstKey][0];
+            }
         }
-        // 2. Captura el mensaje genérico (ej: de un NotFound o un error de lógica)
-        if (error.response.data.message) {
-            return error.response.data.message;
-        }
-        // 3. Fallback para errores de validación de modelo de ASP.NET Core (ej: { title: "One or more validation errors occurred." })
-        if (error.response.data.title && error.response.status === 400) {
-            return error.response.data.title;
-        }
+        if (data.error) return data.error;
+        if (data.message) return data.message;
+        if (data.title && error.response.status === 400) return data.title;
     }
-    // 4. Fallback al mensaje de la librería o el predeterminado
     return error.message || defaultMessage;
 };
 
@@ -94,7 +92,6 @@ export const apiGet = async (endpoint) => {
         const response = await api.get(endpoint);
         return response.data;
     } catch (error) {
-        // Usando la función central
         throw new Error(extractErrorMessage(error, 'Error al obtener datos.'));
     }
 };
@@ -104,7 +101,7 @@ export const apiGet = async (endpoint) => {
 // ==========================================================================
 export const login = async (login, password) => {
     try {
-        const response = await api.post('/usuarios/login', { login, password });
+        const response = await api.post('/auth/login', { login, password });
         const { token, refreshToken } = response.data;
         if (!token || !refreshToken) throw new Error("El servidor no proporcionó tokens.");
         guardarToken(token, refreshToken);
@@ -116,48 +113,30 @@ export const login = async (login, password) => {
     }
 };
 
-
 export const getUsuarioActual = () => {
-    const token = sessionStorage.getItem('token');
+    // CORREGIDO: leer desde sessionStorage (consistente con guardarToken)
+    const token = sessionStorage.getItem("token");
     if (!token) return null;
 
-    try {
-        const payload = jwtDecode(token);
+    const decoded = jwtDecode(token);
 
-        // Parsear permisos: ahora vienen como claim "permiso"
-        let permisosArray = [];
-        if (payload.permiso) {
-            if (Array.isArray(payload.permiso)) {
-                permisosArray = payload.permiso;
-            } else {
-                permisosArray = [payload.permiso];
-            }
-        }
+    // Extraer roles correctamente
+    let roles = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
 
-        // Validar expiración del token
-        const now = Date.now() / 1000;
-        if (payload.exp < now) {
-            eliminarToken();
-            return null;
-        }
+    if (!roles) roles = [];
+    if (!Array.isArray(roles)) roles = [roles];
 
-        return {
-            id: payload.IdUsuario || payload.nameid,
-            nombre: payload.nombre,
-            login: payload.unique_name,
-            rol: payload.role,
-            estado: payload.estado,
-            permisos: permisosArray,
-        };
-    } catch {
-        eliminarToken();
-        return null;
-    }
+    return {
+        idUsuario: decoded.IdUsuario,
+        username: decoded.unique_name,
+        nombre: decoded.nombre,
+        permisos: roles,
+    };
 };
 
 
 // ==============================================================================
-// USUARIOS CRUD
+// Usuarios CRUD
 // ==============================================================================
 export const getUsuariosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -265,7 +244,7 @@ export const exportarUsuarios = async ({ query = '', estadoFiltro = '' }) => {
 export const getUsuarioById = (id) => apiGet(`/usuarios/${id}`);
 
 // ==============================================================================
-// PERMISOS Y ASIGNACIÓN DE PERMISOS
+// Permisos y Asignación de permisos
 // ==============================================================================
 export const getPermisos = async (pagina = 1, tamano = 20, query = '') => {
     const res = await api.get('/permisos', {
@@ -288,13 +267,13 @@ export const buscarPermisosSelect = async (inputValue = '', page = 1, size = 50)
 
 export const asignarPermisosUsuario = async (idUsuario, permisosIds) => {
     const payload = {
-        idUsuario: idUsuario,
-        permisosIds: permisosIds
+        IdUsuario: Number(idUsuario),
+        PermisosIds: permisosIds
     };
-    // Llamada a POST /api/Usuario/{id}/permisos
     const res = await api.post(`/usuarios/${idUsuario}/permisos`, payload);
     return res.data;
 };
+
 export const deleteAsignacion = async (idUsuarioPermiso) => {
     const res = await api.delete(`/usuarios/asignaciones/${idUsuarioPermiso}`);
     return res.data;
@@ -396,7 +375,7 @@ export const getPermisosCatalogo = async (query = '') => {
 };
 
 // ==============================================================================
-// CATEGORÍAS 
+// Categoria
 // ==============================================================================
 export const getCategoriasPaginadas = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -473,8 +452,17 @@ export const createCategoria = async (data) => {
     try {
         const response = await api.post('/categorias', data);
         return response.data;
+
     } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al crear categoría.'));
+        const backendErrors = error.response?.data?.errors;
+        if (backendErrors) {
+            const firstError = Object.values(backendErrors)[0][0];
+            throw new Error(firstError);
+        }
+
+        throw new Error(
+            extractErrorMessage(error, 'Error al crear categoría.')
+        );
     }
 };
 export const updateCategoria = async (id, data) => {
@@ -497,7 +485,7 @@ export const toggleCategoriaEstado = async (id, nuevoEstado) => {
 export const deleteCategoria = (id) => api.delete(`/categorias/${id}`).then(res => res.data);
 
 // ==============================================================================
-// TIPOS 
+// Tipos
 // ==============================================================================
 export const getTiposPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -601,7 +589,7 @@ export const deleteTipo = (id) => api.delete(`/Tipo/${id}`).then(res => res.data
 
 
 // ==============================================================================
-// MARCAS
+// Marcas
 // ==============================================================================
 export const getMarcasPaginadas = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -707,7 +695,7 @@ export const toggleMarcaEstado = async (id, nuevoEstado) => {
 export const deleteMarca = (id) => api.delete(`/marcas/${id}`).then(res => res.data);
 
 // ==============================================================================
-// PROVEEDORES
+// Proveedores
 // ==============================================================================
 export const getProveedoresPaginadas = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -822,7 +810,7 @@ export const toggleProveedorEstado = async (id, nuevoEstado) => {
 export const deleteProveedor = (id) => api.delete(`/proveedor/${id}`).then(res => res.data);
 
 // ==============================================================================
-// SITIOS
+// Sitios
 // ==============================================================================
 export const getSitiosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -939,7 +927,7 @@ export const toggleSitioEstado = async (id, nuevoEstado) => {
 export const deleteSitio = (id) => api.delete(`/sitios/${id}`).then(res => res.data);
 
 // ==============================================================================
-// CONTRATOS
+// Contratos
 // ==============================================================================
 export const getContratosPaginadas = async (pagina = 1, tamano = 10, query = '', fechaInicio = null, fechaFin = null) => {
     const token = getToken();
@@ -1043,25 +1031,45 @@ export const updateContrato = async (id, data) => {
 export const deleteContrato = (id) => api.delete(`/contratos/${id}`).then(res => res.data);
 
 //================================================================================
-// ESTADO CONTRATOS
+// Estados
 //================================================================================
 
-export const buscarEstadoContratosSelect = async (inputValue = '') => {
+export const buscarEstadoSelect = async (inputValue = '') => {
     const params = {};
     if (inputValue && inputValue.trim() !== '') {
         params.query = inputValue.trim();
     }
 
-    const response = await api.get('/EstadoContrato/select', { params });
+    const response = await api.get('/EstadosEstado/select', { params });
     // Normaliza por si el backend capitaliza las keys
     return response.data.map((c) => ({
         value: c.value ?? c.Value,
         label: c.label ?? c.Label,
     }));
 };
+export const getEstadosById = (id) => apiGet(`/EstadosEstado/${id}`);
+
+//================================================================================
+// Propiedad Legal
+//================================================================================
+
+export const buscarPropiedadLegalSelect = async (inputValue = '') => {
+    const params = {};
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue.trim();
+    }
+
+    const response = await api.get('/PropiedadLegal/select', { params });
+    // Normaliza por si el backend capitaliza las keys
+    return response.data.map((p) => ({
+        value: p.value ?? p.Value,
+        label: p.label ?? p.Label,
+    }));
+};
+export const getPropiedadLegalById = (id) => apiGet(`/PropiedadLegal/${id}`);
 
 // ==============================================================================
-// MODELOS
+// Modelos
 // ==============================================================================
 export const getModelosPaginados = async (pagina = 1, tamano = 10, query = '', estadoFiltro = '') => {
     try {
@@ -1287,6 +1295,282 @@ export const toggleUbicacionEstado = async (id, nuevoEstado) => {
 };
 export const deleteUbicacion = (id) => api.delete(`/ubicacion/${id}`).then(res => res.data);
 
+//====================================================================================
+//Activos
+//====================================================================================
+export const getActivosPaginados = async (
+    pagina = 1,
+    tamano = 10,
+    query = '',
+    estadoFiltro = '',
+    sortColumn = '',
+    sortDirection = 'asc'
+) => {
+    try {
+        const params = new URLSearchParams();
+
+        // Paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Filtro de búsqueda
+        if (query?.trim()) {
+            params.append('query', query.trim());
+        }
+
+        // Filtro por estado
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        // Ordenamiento dinámico
+        if (sortColumn?.trim()) {
+            params.append('sortColumn', sortColumn);
+        }
+        if (sortDirection?.trim()) {
+            params.append('sortDirection', sortDirection);
+        }
+
+        const url = `/activos/?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener activos paginados.'));
+    }
+};
+export const buscarActivosSelect = async (inputValue = '', page = 1, size = 50) => {
+    const params = { page, size };
+    if (inputValue && inputValue.trim() !== '') {
+        params.query = inputValue;
+    }
+    const response = await api.get('/activos/select', { params });
+    return response.data.map(a => ({
+        value: a.value ?? a.Value,
+        label: a.label ?? a.Label
+    }));
+};
+export const exportarActivos = async ({
+    query = "",
+    estadoFiltro = "",
+    sortColumn = "",
+    sortDirection = ""
+} = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        if (query?.trim()) params.append("query", query.trim());
+
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== "todo") {
+            params.append("estadoFiltro", estadoFiltro);
+        }
+
+        if (sortColumn?.trim()) params.append("sortColumn", sortColumn);
+        if (sortDirection?.trim()) params.append("sortDirection", sortDirection);
+
+        const url = `${BASE_URL}/activos/exportar?${params.toString()}`;
+
+        const response = await axios.get(url, {
+            responseType: "blob",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const blob = new Blob([response.data], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = urlBlob;
+        link.setAttribute("download", "Activos_Exportados.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, "Error al exportar activos."));
+    }
+};
+export const getActivos = () => apiGet('/activos');
+
+export const getActivosById = (id) => apiGet(`/activos/${id}`);
+
+export const createActivo = async (data) => {
+    try {
+        const response = await api.post('/activos', data);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al crear el activo.'));
+    }
+};
+export const updateActivo = async (id, data) => {
+    try {
+        const response = await api.put(`/activos/${id}`, data);
+        return response.data;
+    } catch (error) {
+
+        throw new Error(extractErrorMessage(error, 'Error al actualizar el activo.'));
+    }
+};
+export const deleteActivo = (id) => api.delete(`/activos/${id}`).then(res => res.data);
+
+export const getPrediccionesPorActivo = async (idActivo) => {
+    try {
+        const response = await api.get(`/predicciones/activo/${idActivo}`);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, "Error al obtener predicciones."));
+    }
+};
+
+export const guardarPrediccion = async (payload) => {
+    try {
+        const response = await api.post("/predicciones/guardar", payload);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw new Error(error.response.data?.message || "Error en el servidor");
+        } else if (error.request) {
+            throw new Error("No se recibió respuesta del servidor");
+        } else {
+            throw new Error(error.message);
+        }
+    }
+};
+
+export const generarPrediccion = async (idActivo, umbral) => {
+    try {
+        const response = await api.get(
+            `/predicciones/generar/${idActivo}`,
+            {
+                params: { umbral }
+            }
+        );
+
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw new Error(error.response.data?.message || "Error en el servidor");
+        } else if (error.request) {
+            throw new Error("No se recibió respuesta del servidor");
+        } else {
+            throw new Error(error.message);
+        }
+    }
+};
+
+//====================================================================================
+//Servicios
+//====================================================================================
+export const getServiciosPaginados = async (
+    pagina = 1,
+    tamano = 10,
+    query = '',
+    estadoFiltro = '',
+    sortColumn = '',
+    sortDirection = 'asc'
+) => {
+    try {
+        const params = new URLSearchParams();
+
+        // Paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Filtro de búsqueda
+        if (query?.trim()) {
+            params.append('query', query.trim());
+        }
+
+        // Filtro por estado
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== 'todo') {
+            params.append('estadoFiltro', estadoFiltro);
+        }
+
+        // Ordenamiento dinámico
+        if (sortColumn?.trim()) {
+            params.append('sortColumn', sortColumn);
+        }
+        if (sortDirection?.trim()) {
+            params.append('sortDirection', sortDirection);
+        }
+
+        const url = `/servicio/?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener servicios paginados.'));
+    }
+};
+
+export const exportarServicios = async ({
+    query = "",
+    estadoFiltro = "",
+    sortColumn = "",
+    sortDirection = ""
+} = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        if (query?.trim()) params.append("query", query.trim());
+
+        if (estadoFiltro?.trim() && estadoFiltro.toLowerCase() !== "todo") {
+            params.append("estadoFiltro", estadoFiltro);
+        }
+
+        if (sortColumn?.trim()) params.append("sortColumn", sortColumn);
+        if (sortDirection?.trim()) params.append("sortDirection", sortDirection);
+
+        const url = `${BASE_URL}/servicio/exportar?${params.toString()}`;
+
+        const response = await axios.get(url, {
+            responseType: "blob",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        const blob = new Blob([response.data], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = urlBlob;
+        link.setAttribute("download", "Servicios_Exportados.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, "Error al exportar servicios."));
+    }
+};
+
+export const getServiciosById = (id) => apiGet(`/servicio/${id}`);
+
+export const createServicio = async (data) => {
+    try {
+        const response = await api.post('/servicio', data);
+        return response.data;
+    } catch (error) {
+        // Usando la función central
+        throw new Error(extractErrorMessage(error, 'Error al crear el servicio.'));
+    }
+};
+
+export const updateServicio = async (id, data) => {
+    try {
+        const response = await api.put(`/servicio/${id}`, data);
+        return response.data;
+    } catch (error) {
+
+        throw new Error(extractErrorMessage(error, 'Error al actualizar el servicio.'));
+    }
+};
+export const deleteServicio = (id) => api.delete(`/servicio/${id}`).then(res => res.data);
 
 // ==============================================================================
 // Dispositivos
@@ -1332,7 +1616,6 @@ export const getDispositivosPaginados = async (
     }
 };
 
-
 export const buscarDispositivosSelect = async (inputValue = '', page = 1, size = 50) => {
     const params = { page, size };
     if (inputValue && inputValue.trim() !== '') {
@@ -1344,7 +1627,6 @@ export const buscarDispositivosSelect = async (inputValue = '', page = 1, size =
         label: c.label ?? c.Label
     }));
 };
-
 
 export const exportarDispositivos = async ({
     query = "",
@@ -1413,15 +1695,7 @@ export const updateDispositivo = async (id, data) => {
         throw new Error(extractErrorMessage(error, 'Error al actualizar el dispositivo.'));
     }
 };
-export const toggleDispositivoEstado = async (id, nuevoEstado) => {
-    try {
-        await api.patch(`/dispositivos/${id}/estado`, { estado: nuevoEstado });
-        return { id, estado: nuevoEstado };
-    } catch (error) {
 
-        throw new Error(extractErrorMessage(error, 'Error al cambiar estado del dispositivo.'));
-    }
-};
 export const deleteDispositivo = (id) => api.delete(`/dispositivos/${id}`).then(res => res.data);
 
 // ==============================================================================
@@ -1659,6 +1933,30 @@ export const updateConsumible = async (id, data) => {
 
 export const deleteConsumible = (id) => api.delete(`/consumible/${id}`).then(res => res.data);
 
+// Leer consumos desde la impresora (solo lectura)
+export const extraerConsumible = async (ip) => {
+    try {
+        const response = await api.get('/consumible/extraer-consumibles', {
+            params: { ip }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al extraer consumos.'));
+    }
+};
+
+// Leer y guardar consumos desde la impresora
+export const extraerYGuardarConsumible = async (ip, idDispositivo, idUsuario) => {
+    try {
+        const response = await api.post('/consumible/extraer-y-guardar-consumibles', null, {
+            params: { ip, idDispositivo, idUsuario }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al extraer y guardar consumos.'));
+    }
+};
+
 // ==============================================================================
 // Consumos
 // ==============================================================================
@@ -1779,6 +2077,149 @@ export const updateConsumo = async (id, data) => {
 
 export const deleteConsumo = (id) => api.delete(`/consumo/${id}`).then(res => res.data);
 
+// Leer consumos desde la impresora (solo lectura)
+export const extraerConsumos = async (ip) => {
+    try {
+        const response = await api.get('/consumo/extraer', {
+            params: { ip }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al extraer consumos.'));
+    }
+};
+
+// Leer y guardar consumos desde la impresora
+export const extraerYGuardar = async (ip, idDispositivo, idUsuario) => {
+    try {
+        const response = await api.post('/consumo/extraer-y-guardar', null, {
+            params: { ip, idDispositivo, idUsuario }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al extraer y guardar consumos.'));
+    }
+};
+
+// ==============================================================================
+// Consumos Mensuales
+// ==============================================================================
+export const getConsumosMensualesPaginados = async (
+    pagina = 1,
+    tamano = 10,
+    query = '',
+    fechaInicio = '',
+    fechaFin = '',
+    sortColumn = '',
+    sortDirection = 'asc'
+) => {
+    try {
+        const params = new URLSearchParams();
+
+        // Paginación
+        params.append('pagina', pagina);
+        params.append('tamano', tamano);
+
+        // Filtro de búsqueda
+        if (query?.trim()) params.append('query', query.trim());
+
+        // Filtros de fecha
+        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
+        if (fechaInicio && isValidDate(fechaInicio)) params.append('fechaInicio', fechaInicio);
+        if (fechaFin && isValidDate(fechaFin)) params.append('fechaFin', fechaFin);
+
+        // Ordenamiento opcional
+        if (sortColumn) params.append('sortColumn', sortColumn);
+        if (sortDirection) params.append('sortDirection', sortDirection);
+
+        const url = `/ConsumoMensual?${params.toString()}`;
+        const response = await api.get(url);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al obtener consumos mensuales paginados.'));
+    }
+};
+
+export const exportarConsumosMensuales = async ({
+    query = "",
+    sortColumn = "",
+    sortDirection = "asc",
+    fechaInicio = "",
+    fechaFin = ""
+} = {}) => {
+    try {
+        const token = getToken();
+        const params = new URLSearchParams();
+
+        // Filtros de búsqueda
+        if (query?.trim()) params.append("query", query.trim());
+
+        // Ordenamiento
+        if (sortColumn?.trim()) params.append("sortColumn", sortColumn.trim());
+        if (sortDirection?.trim()) params.append("sortDirection", sortDirection.trim());
+
+        // Filtros de fecha (validación formato yyyy-MM-dd)
+        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
+        if (fechaInicio && isValidDate(fechaInicio)) params.append("fechaInicio", fechaInicio);
+        if (fechaFin && isValidDate(fechaFin)) params.append("fechaFin", fechaFin);
+
+        const url = `${BASE_URL}/ConsumoMensual/exportar?${params.toString()}`;
+        const response = await axios.get(url, {
+            responseType: "blob",
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Descargar archivo Excel
+        const blob = new Blob([response.data], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const urlBlob = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = urlBlob;
+        link.setAttribute("download", "ConsumosMensuales_Exportados.xlsx");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, "Error al exportar consumos mensuales."));
+    }
+};
+
+export const getConsumoMensualesById = (id) => apiGet(`/ConsumoMensual/${id}`);
+
+export const createConsumoMensual = async (data) => {
+    try {
+        const response = await api.post('/ConsumoMensual', data);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al crear consumo mensual.'));
+    }
+};
+
+export const updateConsumoMensual = async (id, data) => {
+    try {
+        const response = await api.put(`/ConsumoMensual/${id}`, data);
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al actualizar consumo mensual.'));
+    }
+};
+
+export const deleteConsumoMensual = (id) => api.delete(`/ConsumoMensual/${id}`).then(res => res.data);
+
+
+export const generarConsolidado = async (idDispositivo, fechaLectura) => {
+    try {
+        const response = await api.post('/ConsumoMensual/generar-consolidado', null, {
+            params: { idDispositivo, fechaLectura }
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(extractErrorMessage(error, 'Error al generar consolidado.'));
+    }
+};
+
 // ==============================================================================
 // Parametros Ambiente
 // ==============================================================================
@@ -1846,9 +2287,9 @@ export const exportarParametroAmbiente = async ({
         }
         // -------------------------------
 
-        if (fechaInicio) params.append('fechaInicio', fechaInicio);
-        if (fechaFin) params.append('fechaFin', fechaFin);
-
+        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
+        if (fechaInicio && isValidDate(fechaInicio)) params.append('fechaInicio', fechaInicio);
+        if (fechaFin && isValidDate(fechaFin)) params.append('fechaFin', fechaFin);
 
         const url = `${BASE_URL}/ParametroAmbiente/exportar?${params.toString()}`;
 
@@ -2160,126 +2601,6 @@ export async function reasignarResolucion(idResolucion, nuevoIdIncidencia) {
 
 export const deleteResolucion = (id) => api.delete(`/Resolucion/${id}`).then(res => res.data);
 
-// ==============================================================================
-// Estado Otros Dispositivos
-// ==============================================================================
-export const getEstadoDispositivosPaginados = async (
-    pagina = 1,
-    tamano = 10,
-    query = '',
-    fechaInicio = '',
-    fechaFin = '',
-
-) => {
-    try {
-        const params = new URLSearchParams();
-
-        // Paginación
-        params.append('pagina', pagina);
-        params.append('tamano', tamano);
-
-        // Filtro de búsqueda de texto (query)
-        // ESTO maneja la búsqueda por nombre de Dispositivo o Usuario
-        if (query?.trim()) {
-            params.append('query', query.trim());
-        }
-
-        // Filtros de fecha (solo si son válidos)
-        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
-
-        if (fechaInicio && isValidDate(fechaInicio)) {
-            params.append('fechaInicio', fechaInicio); // Enviando al backend
-        }
-        if (fechaFin && isValidDate(fechaFin)) {
-            params.append('fechaFin', fechaFin);       // Enviando al backend
-        }
-
-        const url = `/EstadoDispositivo?${params.toString()}`;
-        const response = await api.get(url);
-        return response.data;
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al obtener estado de otrso dispositivos paginados.'));
-    }
-};
-
-export const exportarEstadoDispositivos = async ({
-    query = "",
-    ordenarPor = "",
-    idDispositivo = null,
-    idUsuario = null,
-    fechaInicio = "",
-    fechaFin = ""
-} = {}) => {
-    try {
-        const token = getToken();
-        const params = new URLSearchParams();
-
-        // Filtros
-        if (query?.trim()) params.append('query', query.trim());
-        if (ordenarPor?.trim()) params.append('ordenarPor', ordenarPor.trim());
-
-        // --- Nuevos Filtros Maestros ---
-        if (idDispositivo && idDispositivo > 0) {
-            params.append('idDispositivo', idDispositivo);
-        }
-        if (idUsuario && idUsuario > 0) {
-            params.append('idUsuario', idUsuario);
-        }
-        // -------------------------------
-
-        if (fechaInicio) params.append('fechaInicio', fechaInicio);
-        if (fechaFin) params.append('fechaFin', fechaFin);
-
-
-        const url = `${BASE_URL}/EstadoDispositivo/exportar?${params.toString()}`;
-
-        const response = await axios.get(url, {
-            responseType: 'blob',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-
-        // Lógica de descarga...
-        const blob = new Blob([response.data], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-
-        const urlBlob = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = urlBlob;
-        link.setAttribute('download', 'EstadoDispositivos_Exportados.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al exportar estado de dispositivos.'));
-    }
-};
-
-export const getEstadoDispositivoById = (id) => apiGet(`/EstadoDispositivo/${id}`);
-
-export const createEstadoDispositivo = async (data) => {
-    try {
-        const response = await api.post('/EstadoDispositivo', data);
-        return response.data;
-    } catch (error) {
-        // Usando la función central
-        throw new Error(extractErrorMessage(error, 'Error al crear Estado de dispositivos.'));
-    }
-};
-export const updateEstadoDispositivo = async (id, data) => {
-    try {
-        const response = await api.put(`/EstadoDispositivo/${id}`, data);
-        return response.data;
-    } catch (error) {
-        // Usando la función central
-        throw new Error(extractErrorMessage(error, 'Error al actualizar el estado de dispositivos.'));
-    }
-};
-
-export const deleteEstadoDispositivo = (id) => api.delete(`/EstadoDispositivo/${id}`).then(res => res.data);
-
 //===================================================================================================
 //Auditorias
 //===================================================================================================
@@ -2366,58 +2687,6 @@ export const exportarAuditorias = async ({
 //=====================================================================================================
 
 // ==============================================================================
-// REPORTE DE CONSUMOS
-// ==============================================================================
-export const GetReporteConsumo = async (filtro) => {
-    try {
-
-        const body = {
-            FechaDesde: filtro.FechaDesde || null,
-            FechaHasta: filtro.FechaHasta || null,
-            SitioId: filtro.SitioId || null,
-            ProveedorId: filtro.ProveedorId || null,
-            DispositivoId: filtro.DispositivoId || null
-        };
-
-        console.log("Body enviado desde servicio:", body); // debug opcional
-
-        const response = await api.post('/reportes/consumo', body);
-        return response.data; // devuelve directamente el array
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al cargar el reporte.'));
-    }
-};
-
-export const exportarReporteConsumo = async (filtro) => {
-    try {
-        const token = getToken();
-        const body = {
-            FechaDesde: filtro.FechaDesde || null,
-            FechaHasta: filtro.FechaHasta || null,
-            SitioId: filtro.SitioId || null,
-            ProveedorId: filtro.ProveedorId || null,
-            DispositivoId: filtro.DispositivoId || null
-        };
-
-        const response = await axios.post(`${BASE_URL}/reportes/consumo/exportar`, body, {
-            responseType: 'blob',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `Reporte_Consumo_${new Date().toISOString().split('T')[0]}.xlsx`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al exportar a Excel.'));
-    }
-};
-
-// ==============================================================================
 // REPORTE DE VENCIMIENTO DE CONTRATOS
 // ==============================================================================
 export const getVencimientoContratos = async (filtro) => {
@@ -2475,9 +2744,3 @@ export const getDashboard = async () => {
     const response = await api.get("/dashboard");
     return response.data;
 };
-
-// ==========================
-// EJEMPLOS ESPECÍFICOS 
-// ==========================
-export const getRecorridos = () => apiGet('/recorridos');
-export const crearRecorrido = (data) => api.post('/recorridos', data).then(res => res.data);

@@ -1,68 +1,66 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarActivosSelect,
-    buscarContratosSelect,
+    buscarCategoriasSelect,
     buscarEstadoSelect,
-    buscarModelosSelect,
+    buscarPropiedadLegalSelect,
     buscarTiposSelect,
-    createDispositivo,
-    getActivosById,
-    getContratoById,
+    buscarUbicacionesSelect,
+    createActivo,
+    getCategoriaById,
     getEstadosById,
-    getModeloById,
+    getPropiedadLegalById,
     getTipoById,
-    updateDispositivo
+    getUbicacionesById,
+    updateActivo
 } from '../../../services/api';
 
-const DispositivoForm = ({ dispositivo, onClose }) => {
+const ActivoForm = ({ activo, onClose }) => {
+    const [OpcionesPropiedadLegal, setOpcionesPropiedadLegal] = useState([]);
+    const [opcionesCategoria, setOpcionesCategoria] = useState([]);
+    const [OpcionesUbicacion, setOpcionesUbicacion] = useState([]);
     const [OpcionesTipo, setOpcionesTipo] = useState([]);
-    const [OpcionesModelo, setOpcionesModelo] = useState([]);
-    const [OpcionesActivo, setOpcionesActivo] = useState([]);
     const [OpcionesEstado, setOpcionesEstado] = useState([]);
-    const [OpcionesContrato, setOpcionesContrato] = useState([]);
     const [form, setForm] = useState({
-        idActivo: '',
-        serie: '',
-        ip: '',
+        nombreIdentificador: '',
+        idPropiedadLegal: '',
         idTipo: '',
-        idModelo: '',
-        idContrato: '',
+        idCategoria: '',
+        idUbicacion: '',
         idEstado: '',
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!dispositivo;
+    const isEditing = !!activo;
 
     //Carga de datos foráneos para editar
     useEffect(() => {
-        if (dispositivo) {
+        if (activo) {
             setForm({
-                idActivo: dispositivo.idActivo?.toString() || '',
-                idTipo: dispositivo.idTipo?.toString() || '',
-                idModelo: dispositivo.idModelo?.toString() || '',
-                idContrato: dispositivo.idContrato?.toString() || '',
-                serie: dispositivo.serie?.toString() || '',
-                ip: dispositivo.ip?.toString() || '',
-                idEstado: dispositivo.IdEstado?.toString() || ''
+                idPropiedadLegal: activo.idPropiedadLegal?.toString() || '',
+                idTipo: activo.idTipo?.toString() || '',
+                idCategoria: activo.idCategoria?.toString() || '',
+                idUbicacion: activo.idUbicacion?.toString() || '',
+                nombreIdentificador: activo.nombreIdentificador || '',
+                idEstado: activo.idEstado?.toString() || ''
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [activo, tipo, modelo, contrato, estado] = await Promise.all([
-                        getActivosById(dispositivo.idActivo),
-                        getTipoById(dispositivo.idTipo),
-                        getModeloById(dispositivo.idModelo),
-                        getContratoById(dispositivo.idContrato),
-                        getEstadosById(dispositivo.idEstado)
+                    const [propiedadLegal, tipo, categoria, ubicacion, estado] = await Promise.all([
+                        getPropiedadLegalById(activo.idPropiedadLegal),
+                        getTipoById(activo.idTipo),
+                        getCategoriaById(activo.idCategoria),
+                        getUbicacionesById(activo.idUbicacion),
+                        getEstadosById(activo.idEstado)
                     ]);
 
-                    setOpcionesActivo([{ value: activo.idActivo, label: activo.nombreIdentificador }]);
+                    setOpcionesPropiedadLegal([{ value: propiedadLegal.idPropiedadLegal, label: propiedadLegal.nombrePropiedadLegal }]);
                     setOpcionesTipo([{ value: tipo.idTipo, label: tipo.nombreTipo }]);
-                    setOpcionesModelo([{ value: modelo.idModelo, label: modelo.descripcionModelo }]);
-                    setOpcionesContrato([{ value: contrato.idContrato, label: contrato.numeroContrato }]);
+                    setOpcionesCategoria([{ value: categoria.idCategoria, label: categoria.nombreCategoria }]);
+                    setOpcionesUbicacion([{ value: ubicacion.idUbicacion, label: ubicacion.descripcionUbicacion }]);
                     setOpcionesEstado([{ value: estado.idEstado, label: estado.nombreEstado }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
@@ -71,22 +69,23 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
             cargarDatosForaneos();
         }
-    }, [dispositivo]);
+    }, [activo]);
+
+
 
     // Carga de datos si estamos editando
     useEffect(() => {
-        if (dispositivo) {
+        if (activo) {
             setForm({
-                idActivo: dispositivo.idActivo?.toString() || '',
-                idTipo: dispositivo.idTipo?.toString() || '',
-                idModelo: dispositivo.idModelo?.toString() || '',
-                idContrato: dispositivo.idContrato?.toString() || '',
-                serie: dispositivo.serie?.toString() || '',
-                ip: dispositivo.ip?.toString() || '',
-                idEstado: dispositivo.idEstado?.toString() || ''
+                idPropiedadLegal: activo.idPropiedadLegal?.toString() || '',
+                idTipo: activo.idTipo?.toString() || '',
+                idCategoria: activo.idCategoria?.toString() || '',
+                idUbicacion: activo.idUbicacion?.toString() || '',
+                nombreIdentificador: activo.nombreIdentificador || '',
+                idEstado: activo.idEstado?.toString() || ''
             });
         }
-    }, [dispositivo]);
+    }, [activo]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -99,12 +98,11 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.idActivo) return setError("Debe seleccionar un activo.");
-        if (!form.serie.trim()) return setError("El número de serie no puede estar vacío.");
-        if (!form.ip.trim()) return setError("La ip no puede estar vacío.");
+        if (!form.nombreIdentificador.trim()) return setError("Debe escribir un nombre identificador.");
+        if (!form.idPropiedadLegal) return setError("Debe seleccionar una propiedad Legal.");
         if (!form.idTipo) return setError("Debe seleccionar el tipo.");
-        if (!form.idModelo) return setError("Debe seleccionar un modelo.");
-        if (!form.idContrato) return setError("Debe seleccionar un contrato.");
+        if (!form.idCategoria) return setError("Debe seleccionar una categoria.");
+        if (!form.idUbicacion) return setError("Debe seleccionar una ubicación.");
         if (!form.idEstado) return setError("Debe seleccionar un estado.");
 
 
@@ -115,27 +113,25 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
         const payload = {
             ...form,
-            idActivo: parseInt(form.idActivo),
+            idPropiedadLegal: parseInt(form.idPropiedadLegal),
             idTipo: parseInt(form.idTipo),
-            idModelo: parseInt(form.idModelo),
-            idContrato: parseInt(form.idContrato),
+            idCategoria: parseInt(form.idCategoria),
+            idUbicacion: parseInt(form.idUbicacion),
             idEstado: parseInt(form.idEstado),
-            serie: form.serie.trim(),
-            ip: form.ip.trim(),
 
         };
 
         try {
             if (isEditing) {
-                await updateDispositivo(dispositivo.idDispositivo, payload);
+                await updateActivo(activo.idActivo, payload);
             } else {
-                await createDispositivo(payload);
+                await createActivo(payload);
             }
 
-            setMensajeExito(`Dispositivo ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
+            setMensajeExito(`Activo ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             setTimeout(() => onClose(true), 1500);
         } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el dispositivo.';
+            const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el Activo.';
             setError(errorMessage);
         } finally {
             setCargando(false);
@@ -149,7 +145,7 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
     return (
         <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
-                {isEditing ? 'Editar Dispositivo' : 'Crear Nuevo Dispositivo'}
+                {isEditing ? 'Editar Activo' : 'Crear Nuevo Activo'}
             </h2>
 
             {error && (
@@ -165,63 +161,18 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
             )}
 
 
-            <label className="block text-gray-700 text-sm font-bold mb-2">Activo Asociado</label>
-            <AsyncSelect
-                cacheOptions
-                defaultOptions
-                loadOptions={async (inputValue) => {
-                    const opciones = await buscarActivosSelect(inputValue, 1, 50);
-                    setOpcionesActivo(opciones);
-                    return opciones;
-                }}
-                value={
-                    form.idActivo
-                        ? OpcionesActivo.find((o) => o.value === parseInt(form.idActivo)) || {
-                            value: form.idActivo
-                                ? OpcionesActivo.find((o) => o.value === parseInt(form.idActivo)) || null
-                                : null
-                        }
-                        : null
-                }
-                onChange={(opcion) => {
-                    setForm((prev) => ({ ...prev, idActivo: opcion?.value || '' }));
-                    setOpcionesActivo((prev) => {
-                        // si no existe en la lista, la agregamos
-                        if (opcion && !prev.some(o => o.value === opcion.value)) {
-                            return [...prev, opcion];
-                        }
-                        return prev;
-                    });
-                }}
-                placeholder="Buscar y seleccionar Activo..."
-                isClearable
-                className="mb-2"
-            />
-
             <div className="mb-2">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="serie">Serie</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="nombre">Nombre Activo</label>
                 <input
-                    id="serie"
+                    id="nombreIdentificador"
                     type="text"
-                    name="serie"
-                    value={form.serie}
+                    name="nombreIdentificador"
+                    value={form.nombreIdentificador}
                     onChange={handleChange}
-                    required
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                 />
-
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ip">Ip</label>
-                <input
-                    id="ip"
-                    type="text"
-                    name="ip"
-                    value={form.ip}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                />
+                {/* Tipo */}
 
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="tipo">Tipo Asociado</label>
                 <AsyncSelect
@@ -229,23 +180,22 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                     defaultOptions
                     loadOptions={async (inputValue) => {
                         const opciones = await buscarTiposSelect(inputValue, 1, 50);
-                        setOpcionesTipo(opciones);
-                        return opciones;
+                        // Filtramos solo los que tengan label "Dispositivo" o "Servicio"
+                        const filtradas = opciones.filter(
+                            (o) => o.label === "Dispositivo" || o.label === "Servicio"
+                        );
+                        setOpcionesTipo(filtradas);
+                        return filtradas;
                     }}
                     value={
                         form.idTipo
-                            ? OpcionesTipo.find((o) => o.value === parseInt(form.idTipo)) || {
-                                value: form.idTipo
-                                    ? OpcionesTipo.find((o) => o.value === parseInt(form.idTipo)) || null
-                                    : null
-                            }
+                            ? OpcionesTipo.find((o) => o.value === parseInt(form.idTipo)) || null
                             : null
                     }
                     onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idTipo: opcion?.value || '' }));
+                        setForm((prev) => ({ ...prev, idTipo: opcion?.value || "" }));
                         setOpcionesTipo((prev) => {
-                            // si no existe en la lista, la agregamos
-                            if (opcion && !prev.some(o => o.value === opcion.value)) {
+                            if (opcion && !prev.some((o) => o.value === opcion.value)) {
                                 return [...prev, opcion];
                             }
                             return prev;
@@ -256,27 +206,28 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                     className="mb-2"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2">Modelo Asociado</label>
+                {/* Categoria */}
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="tipo">Categoría Asociada</label>
                 <AsyncSelect
                     cacheOptions
                     defaultOptions
                     loadOptions={async (inputValue) => {
-                        const opciones = await buscarModelosSelect(inputValue, 1, 50);
-                        setOpcionesModelo(opciones);
+                        const opciones = await buscarCategoriasSelect(inputValue, 1, 50);
+                        setOpcionesCategoria(opciones);
                         return opciones;
                     }}
                     value={
-                        form.idModelo
-                            ? OpcionesModelo.find((o) => o.value === parseInt(form.idModelo)) || {
-                                value: form.idModelo
-                                    ? OpcionesModelo.find((o) => o.value === parseInt(form.idModelo)) || null
+                        form.idCategoria
+                            ? opcionesCategoria.find((o) => o.value === parseInt(form.idCategoria)) || {
+                                value: form.idCategoria
+                                    ? opcionesCategoria.find((o) => o.value === parseInt(form.idCategoria)) || null
                                     : null
                             }
                             : null
                     }
                     onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idModelo: opcion?.value || '' }));
-                        setOpcionesModelo((prev) => {
+                        setForm((prev) => ({ ...prev, idCategoria: opcion?.value || '' }));
+                        setOpcionesUbicacion((prev) => {
                             // si no existe en la lista, la agregamos
                             if (opcion && !prev.some(o => o.value === opcion.value)) {
                                 return [...prev, opcion];
@@ -284,32 +235,33 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                             return prev;
                         });
                     }}
-                    placeholder="Buscar y seleccionar Modelo..."
+                    placeholder="Buscar y seleccionar Categoría..."
                     isClearable
                     className="mb-2"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2">Contrato Asociado</label>
+                {/* Ubicación */}
+                <label className="block text-gray-700 text-sm font-bold mb-2">Ubicación Asociada</label>
                 <AsyncSelect
                     cacheOptions
                     defaultOptions
                     loadOptions={async (inputValue) => {
-                        const opciones = await buscarContratosSelect(inputValue, 1, 50);
-                        setOpcionesContrato(opciones);
+                        const opciones = await buscarUbicacionesSelect(inputValue, 1, 50);
+                        setOpcionesUbicacion(opciones);
                         return opciones;
                     }}
                     value={
-                        form.idContrato
-                            ? OpcionesContrato.find((o) => o.value === parseInt(form.idContrato)) || {
-                                value: form.idContrato
-                                    ? OpcionesContrato.find((o) => o.value === parseInt(form.idContrato)) || null
+                        form.idUbicacion
+                            ? OpcionesUbicacion.find((o) => o.value === parseInt(form.idUbicacion)) || {
+                                value: form.idUbicacion
+                                    ? OpcionesUbicacion.find((o) => o.value === parseInt(form.idUbicacion)) || null
                                     : null
                             }
                             : null
                     }
                     onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idContrato: opcion?.value || '' }));
-                        setOpcionesContrato((prev) => {
+                        setForm((prev) => ({ ...prev, idUbicacion: opcion?.value || '' }));
+                        setOpcionesUbicacion((prev) => {
                             // si no existe en la lista, la agregamos
                             if (opcion && !prev.some(o => o.value === opcion.value)) {
                                 return [...prev, opcion];
@@ -317,7 +269,41 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
                             return prev;
                         });
                     }}
-                    placeholder="Buscar y seleccionar contrato..."
+                    placeholder="Buscar y seleccionar ubicación..."
+                    isClearable
+                    className="mb-2"
+                />
+
+                {/* Propiedad Legal */}
+                <label className="block text-gray-700 text-sm font-bold mb-2">Propiedad Legal Asociada</label>
+                <AsyncSelect
+                    cacheOptions
+                    defaultOptions
+                    loadOptions={async (inputValue) => {
+                        const opciones = await buscarPropiedadLegalSelect(inputValue, 1, 50);
+                        setOpcionesPropiedadLegal(opciones);
+                        return opciones;
+                    }}
+                    value={
+                        form.idPropiedadLegal
+                            ? OpcionesPropiedadLegal.find((o) => o.value === parseInt(form.idPropiedadLegal)) || {
+                                value: form.idPropiedadLegal
+                                    ? OpcionesPropiedadLegal.find((o) => o.value === parseInt(form.idPropiedadLegal)) || null
+                                    : null
+                            }
+                            : null
+                    }
+                    onChange={(opcion) => {
+                        setForm((prev) => ({ ...prev, idPropiedadLegal: opcion?.value || '' }));
+                        setOpcionesPropiedadLegal((prev) => {
+                            // si no existe en la lista, la agregamos
+                            if (opcion && !prev.some(o => o.value === opcion.value)) {
+                                return [...prev, opcion];
+                            }
+                            return prev;
+                        });
+                    }}
+                    placeholder="Buscar y seleccionar Propiedad Legal..."
                     isClearable
                     className="mb-2"
                 />
@@ -380,4 +366,4 @@ const DispositivoForm = ({ dispositivo, onClose }) => {
 
 };
 
-export default DispositivoForm;
+export default ActivoForm;

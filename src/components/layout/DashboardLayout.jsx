@@ -12,10 +12,11 @@ const WARNING_TIME = 5000;     // 5 segundos de aviso antes de cerrar sesión fo
 
 const DashboardLayout = ({ children, pageTitle, activePath }) => {
     const navigate = useNavigate();
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(true);
     const [usuario, setUsuario] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+    const toggleMenu = () => setIsMenuOpen(prev => !prev);
 
     // Referencias para manejar los timers
     const inactivityTimerRef = useRef(null);
@@ -168,19 +169,20 @@ const DashboardLayout = ({ children, pageTitle, activePath }) => {
             {/* Sidebar (Menú Lateral) */}
             <Sidebar
                 isMenuOpen={isMenuOpen}
-                handleMenuClose={() => setIsMenuOpen(false)}
+                toggleMenu={toggleMenu}
                 activePath={activePath}
                 usuario={usuario}
             />
 
             {/* Contenido Principal */}
-            <div className="flex-1 flex flex-col overflow-hidden lg:pl-64">
+            <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMenuOpen ? "lg:pl-64" : "lg:pl-16"}`}>
                 {/* Navbar (Cabecera Superior) */}
                 <Navbar
                     setIsMenuOpen={setIsMenuOpen}
                     pageTitle={pageTitle}
                     usuario={usuario}
                     onLogout={handleLogout} // Se pasa la función de logout al Navbar
+                    isMenuOpen={isMenuOpen}
                 />
 
                 {/* Área de Contenido */}

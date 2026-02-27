@@ -1,31 +1,29 @@
 import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarCategoriasSelect,
+    buscarActivosSelect,
+    buscarEstadoSelect,
     buscarModelosSelect,
     buscarTiposSelect,
-    buscarUbicacionesSelect,
     createOtrosDispositivo,
-    getCategoriaById,
+    getActivosById,
+    getEstadosById,
     getModeloById,
     getTipoById,
-    getUbicacionesById,
     updateOtrosDispositivo
 } from '../../../services/api';
 
 const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
-    const [opcionesCategoria, setOpcionesCategoria] = useState([]);
     const [OpcionesTipo, setOpcionesTipo] = useState([]);
     const [opcionesModelo, setOpcionesModelo] = useState([]);
-    const [OpcionesUbicacion, setOpcionesUbicacion] = useState([]);
+    const [OpcionesActivo, setOpcionesActivo] = useState([]);
+    const [OpcionesEstado, setOpcionesEstado] = useState([]);
     const [form, setForm] = useState({
-        nombre: '',
         serie: '',
         idTipo: '',
-        idCategoria: '',
         idModelo: '',
-        idUbicacion: '',
-        estado: true,
+        idActivo: '',
+        idEstado: '',
     });
 
     const [cargando, setCargando] = useState(false);
@@ -37,28 +35,26 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
     useEffect(() => {
         if (otrosdispositivo) {
             setForm({
-                idCategoria: otrosdispositivo.idCategoria?.toString() || '',
                 idTipo: otrosdispositivo.idTipo?.toString() || '',
                 idModelo: otrosdispositivo.idModelo?.toString() || '',
-                idUbicacion: otrosdispositivo.idUbicacion?.toString() || '',
-                nombre: otrosdispositivo.nombre || '',
+                idActivo: otrosdispositivo.idActivo?.toString() || '',
                 serie: otrosdispositivo.serie?.toString() || '',
-                estado: otrosdispositivo.estado ?? true
+                idEstado: otrosdispositivo.idEstado?.toString() || '',
             });
 
             const cargarDatosForaneos = async () => {
                 try {
-                    const [categoria, tipo, modelo, ubicacion] = await Promise.all([
-                        getCategoriaById(otrosdispositivo.idCategoria),
+                    const [tipo, modelo, activo, estado] = await Promise.all([
                         getTipoById(otrosdispositivo.idTipo),
                         getModeloById(otrosdispositivo.idModelo),
-                        getUbicacionesById(otrosdispositivo.idUbicacion),
+                        getActivosById(otrosdispositivo.idActivo),
+                        getEstadosById(otrosdispositivo.idEstado),
                     ]);
 
-                    setOpcionesCategoria([{ value: categoria.idCategoria, label: categoria.descripcion }]);
-                    setOpcionesTipo([{ value: tipo.idTipo, label: tipo.nombre }]);
-                    setOpcionesModelo([{ value: modelo.idModelo, label: modelo.descripcion }]);
-                    setOpcionesUbicacion([{ value: ubicacion.idUbicacion, label: ubicacion.descripcion }]);
+                    setOpcionesTipo([{ value: tipo.idTipo, label: tipo.nombreTipo }]);
+                    setOpcionesModelo([{ value: modelo.idModelo, label: modelo.descripcionModelo }]);
+                    setOpcionesActivo([{ value: activo.idActivo, label: activo.nombreIdentificador }]);
+                    setOpcionesEstado([{ value: estado.idEstado, label: estado.nombreEstado }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -74,13 +70,11 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
     useEffect(() => {
         if (otrosdispositivo) {
             setForm({
-                idCategoria: otrosdispositivo.idCategoria?.toString() || '',
                 idTipo: otrosdispositivo.idTipo?.toString() || '',
                 idModelo: otrosdispositivo.idModelo?.toString() || '',
-                idUbicacion: otrosdispositivo.idUbicacion?.toString() || '',
-                nombre: otrosdispositivo.nombre || '',
+                idActivo: otrosdispositivo.idActivo?.toString() || '',
                 serie: otrosdispositivo.serie?.toString() || '',
-                estado: otrosdispositivo.estado ?? true
+                idEstado: otrosdispositivo.idEstado?.toString() || '',
             });
         }
     }, [otrosdispositivo]);
@@ -96,12 +90,12 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.nombre.trim()) return setError("El nombre del dispositivo no puede estar vacío.");
+        if (!form.idActivo) return setError("Debe seleccionar un activo.");
         if (!form.serie.trim()) return setError("El número de serie no puede estar vacío.");
-        if (!form.idCategoria) return setError("Debe seleccionar una categoría.");
         if (!form.idTipo) return setError("Debe seleccionar un tipo.");
         if (!form.idModelo) return setError("Debe seleccionar un modelo.");
-        if (!form.idUbicacion) return setError("Debe seleccionar una ubicación.");
+        if (!form.idEstado) return setError("Debe seleccionar un estado.");
+
 
         setCargando(true);
         setError(null);
@@ -109,13 +103,11 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
 
         const payload = {
             ...form,
-            idCategoria: parseInt(form.idCategoria),
+            idActivo: parseInt(form.idActivo),
             idTipo: parseInt(form.idTipo),
             idModelo: parseInt(form.idModelo),
-            idUbicacion: parseInt(form.idUbicacion),
-            nombre: form.nombre.trim(),
             serie: form.serie.trim(),
-            estado: form.estado ?? true
+            idEstado: parseInt(form.idEstado)
         };
 
         try {
@@ -140,7 +132,7 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
     //============================================================================================
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Dispositivo' : 'Crear Nuevo Dispositivo'}
             </h2>
@@ -157,19 +149,40 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
                 </div>
             )}
 
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="nombre">Nombre del Dispositivo</label>
-                <input
-                    id="nombre"
-                    type="text"
-                    name="nombre"
-                    value={form.nombre}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2"
-                />
+            <label className="block text-gray-700 text-sm font-bold mb-2">Activo Asociado</label>
+            <AsyncSelect
+                cacheOptions
+                defaultOptions
+                loadOptions={async (inputValue) => {
+                    const opciones = await buscarActivosSelect(inputValue, 1, 50);
+                    setOpcionesActivo(opciones);
+                    return opciones;
+                }}
+                value={
+                    form.idActivo
+                        ? OpcionesActivo.find((o) => o.value === parseInt(form.idActivo)) || {
+                            value: form.idActivo
+                                ? OpcionesActivo.find((o) => o.value === parseInt(form.idActivo)) || null
+                                : null
+                        }
+                        : null
+                }
+                onChange={(opcion) => {
+                    setForm((prev) => ({ ...prev, idActivo: opcion?.value || '' }));
+                    setOpcionesActivo((prev) => {
+                        // si no existe en la lista, la agregamos
+                        if (opcion && !prev.some(o => o.value === opcion.value)) {
+                            return [...prev, opcion];
+                        }
+                        return prev;
+                    });
+                }}
+                placeholder="Buscar y seleccionar Activos..."
+                isClearable
+                className="mb-4"
+            />
 
+            <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="serie">Serie</label>
                 <input
                     id="serie"
@@ -218,40 +231,6 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
                     className="mb-4"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2">Categoría Asociada</label>
-                <AsyncSelect
-                    cacheOptions
-                    defaultOptions
-                    loadOptions={async (inputValue) => {
-                        const opciones = await buscarCategoriasSelect(inputValue, 1, 50);
-                        setOpcionesCategoria(opciones);
-                        return opciones;
-                    }}
-                    value={
-                        form.idCategoria
-                            ? opcionesCategoria.find((o) => o.value === parseInt(form.idCategoria)) || {
-                                value: form.idCategoria
-                                    ? opcionesCategoria.find((o) => o.value === parseInt(form.idCategoria)) || null
-                                    : null
-                            }
-                            : null
-                    }
-                    onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idCategoria: opcion?.value || '' }));
-                        setOpcionesCategoria((prev) => {
-                            // si no existe en la lista, la agregamos
-                            if (opcion && !prev.some(o => o.value === opcion.value)) {
-                                return [...prev, opcion];
-                            }
-                            return prev;
-                        });
-                    }}
-                    placeholder="Buscar y seleccionar categoría..."
-                    isClearable
-                    className="mb-4"
-                />
-
-
                 <label className="block text-gray-700 text-sm font-bold mb-2">Modelo Asociado</label>
                 <AsyncSelect
                     cacheOptions
@@ -285,27 +264,27 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
                     className="mb-4"
                 />
 
-                <label className="block text-gray-700 text-sm font-bold mb-2">Ubicación Asociada</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2">Estado Asociado</label>
                 <AsyncSelect
                     cacheOptions
                     defaultOptions
                     loadOptions={async (inputValue) => {
-                        const opciones = await buscarUbicacionesSelect(inputValue, 1, 50);
-                        setOpcionesUbicacion(opciones);
+                        const opciones = await buscarEstadoSelect(inputValue, 1, 50);
+                        setOpcionesEstado(opciones);
                         return opciones;
                     }}
                     value={
-                        form.idUbicacion
-                            ? OpcionesUbicacion.find((o) => o.value === parseInt(form.idUbicacion)) || {
-                                value: form.idUbicacion
-                                    ? OpcionesUbicacion.find((o) => o.value === parseInt(form.idUbicacion)) || null
+                        form.idEstado
+                            ? OpcionesEstado.find((o) => o.value === parseInt(form.idEstado)) || {
+                                value: form.idEstado
+                                    ? OpcionesEstado.find((o) => o.value === parseInt(form.idEstado)) || null
                                     : null
                             }
                             : null
                     }
                     onChange={(opcion) => {
-                        setForm((prev) => ({ ...prev, idUbicacion: opcion?.value || '' }));
-                        setOpcionesUbicacion((prev) => {
+                        setForm((prev) => ({ ...prev, idEstado: opcion?.value || '' }));
+                        setOpcionesEstado((prev) => {
                             // si no existe en la lista, la agregamos
                             if (opcion && !prev.some(o => o.value === opcion.value)) {
                                 return [...prev, opcion];
@@ -313,29 +292,12 @@ const OtrosDispositivoForm = ({ otrosdispositivo, onClose }) => {
                             return prev;
                         });
                     }}
-                    placeholder="Buscar y seleccionar ubicación..."
+                    placeholder="Buscar y seleccionar Estado..."
                     isClearable
                     className="mb-4"
                 />
 
             </div>
-
-            {isEditing && (
-                <div className="mt-4 flex items-center">
-                    <input
-                        type="checkbox"
-                        checked={form.estado}
-                        onChange={(e) => setForm(prev => ({ ...prev, estado: e.target.checked }))}
-                        className="mr-2"
-                    />
-                    <label className="text-sm text-gray-700 font-bold">
-                        Dispositivo Activo
-                        <span className="text-gray-500 text-xs ml-2">
-                            ({form.estado ? 'Visible' : 'Oculto/Desactivado'})
-                        </span>
-                    </label>
-                </div>
-            )}
 
             <div className="flex items-center justify-between mt-6">
                 <button

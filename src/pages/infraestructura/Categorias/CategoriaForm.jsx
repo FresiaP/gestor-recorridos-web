@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createCategoria, updateCategoria } from '../../../services/api';
 
 const CategoriaForm = ({ categoria, onClose }) => {
@@ -13,7 +13,7 @@ const CategoriaForm = ({ categoria, onClose }) => {
 
     useEffect(() => {
         if (categoria) {
-            setNombre(categoria.descripcion || '');
+            setNombre(categoria.nombreCategoria || '');
             setEstado(categoria.estado ?? true);
         } else {
             setEstado(true);
@@ -35,7 +35,7 @@ const CategoriaForm = ({ categoria, onClose }) => {
         // Objeto que enviamos a la API
 
         const dataToSend = {
-            descripcion: nombre.trim(),
+            nombreCategoria: nombre.trim(),
             estado: estado
         };
 
@@ -79,14 +79,13 @@ const CategoriaForm = ({ categoria, onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-semibold mb-4">
                 {isEditing ? 'Editar Categoría' : 'Crear Nueva Categoría'}
             </h2>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {/* El mensaje de error ahora mostrará "Ya existe una categoría..." si viene del backend */}
                     {error}
                 </div>
             )}

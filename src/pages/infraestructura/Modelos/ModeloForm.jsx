@@ -1,13 +1,14 @@
 // src/pages/infraestructura/Modelos/ModeloForm.jsx
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
-import { createModelo, updateModelo, buscarMarcasSelect, getMarcaById } from '../../../services/api';
+import { buscarMarcasSelect, createModelo, getMarcaById, updateModelo } from '../../../services/api';
 
 const ModeloForm = ({ modelo, onClose }) => {
     const [opcionesMarca, setOpcionesMarca] = useState([]);
     const [form, setForm] = useState({
         idMarca: '',
-        descripcion: '',
+        descripcionModelo: '',
+        caracteristicas: '',
         estado: true,
     });
 
@@ -21,7 +22,8 @@ const ModeloForm = ({ modelo, onClose }) => {
         if (modelo) {
             setForm({
                 idMarca: modelo.idMarca?.toString() || '',
-                descripcion: modelo.descripcion || '',
+                descripcionModelo: modelo.descripcionModelo || '',
+                caracteristicas: modelo.caracteristicas || '',
                 estado: modelo.estado ?? true
             });
 
@@ -31,7 +33,7 @@ const ModeloForm = ({ modelo, onClose }) => {
                         getMarcaById(modelo.idMarca),
                     ]);
 
-                    setOpcionesMarca([{ value: marca.idMarca, label: marca.descripcion }]);
+                    setOpcionesMarca([{ value: marca.idMarca, label: marca.descripcionMarca }]);
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -46,7 +48,8 @@ const ModeloForm = ({ modelo, onClose }) => {
         if (modelo) {
             setForm({
                 idMarca: modelo.idMarca?.toString() || '',
-                descripcion: modelo.descripcion || '',
+                descripcionModelo: modelo.descripcionModelo || '',
+                caracteristicas: modelo.caracteristicas || '',
                 estado: modelo.estado ?? true
             });
         }
@@ -66,8 +69,12 @@ const ModeloForm = ({ modelo, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!form.descripcion.trim()) {
+        if (!form.descripcionModelo.trim()) {
             setError("La descripción del modelo no puede estar vacía.");
+            return;
+        }
+        if (!form.caracteristicas.trim()) {
+            setError("Las caracteristicas del modelo no puede estar vacía.");
             return;
         }
         if (!form.idMarca) {
@@ -83,7 +90,8 @@ const ModeloForm = ({ modelo, onClose }) => {
         const payload = {
             ...form,
             idMarca: parseInt(form.idMarca),
-            descripcion: form.descripcion.trim(),
+            descripcionModelo: form.descripcionModelo.trim(),
+            caracteristicas: form.caracteristicas.trim(),
             estado: form.estado ?? false
         };
 
@@ -113,7 +121,7 @@ const ModeloForm = ({ modelo, onClose }) => {
 
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Modelo' : 'Crear Nuevo Modelo'}
             </h2>
@@ -131,14 +139,23 @@ const ModeloForm = ({ modelo, onClose }) => {
             )}
 
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcion"> Descripción del Modelo</label>
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcionModelo"> Descripción del Modelo</label>
                 <input
-                    id="descripcion"
+                    id="descripcionModelo"
                     type="text"
-                    name="descripcion"
-                    value={form.descripcion}
+                    name="descripcionModelo"
+                    value={form.descripcionModelo}
                     onChange={handleChange}
-                    required
+                    disabled={cargando || !!mensajeExito}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                />
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="descripcionModelo"> Características</label>
+                <input
+                    id="caracteristicas"
+                    type="text"
+                    name="caracteristicas"
+                    value={form.caracteristicas}
+                    onChange={handleChange}
                     disabled={cargando || !!mensajeExito}
                     className="w-full border border-gray-300 rounded px-3 py-2"
                 />

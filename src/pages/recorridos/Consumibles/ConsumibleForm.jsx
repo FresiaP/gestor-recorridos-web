@@ -5,6 +5,8 @@ import {
     buscarDispositivosSelect,
     buscarUsuarioSelect,
     createConsumible,
+    extraerConsumible,
+    extraerYGuardarConsumible,
     getDispositivoById,
     getUsuarioById,
     updateConsumible
@@ -24,12 +26,16 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         cartuchoCian: '0',
         cartuchoNegro: '0',
         contenedorResiduos: '0',
+        kitAlimentador: '0',
+        kitMantenimiento: '0',
+        ip: ''
     });
 
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
     const isEditing = !!consumible;
+
 
     // Carga de datos si estamos editando
     useEffect(() => {
@@ -49,7 +55,10 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 cartuchoMagenta: consumible.cartuchoMagenta?.toString() ?? '0',
                 cartuchoCian: consumible.cartuchoCian?.toString() ?? '0',
                 cartuchoNegro: consumible.cartuchoNegro?.toString() ?? '0',
-                contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0'
+                contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0',
+                kitAlimentador: consumible.kitAlimentador?.toString() ?? '',
+                kitMantenimiento: consumible.kitMantenimiento?.toString() ?? ''
+
             });
 
             const cargarDatosForaneos = async () => {
@@ -59,8 +68,11 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         getUsuarioById(consumible.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombre }]);
+                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombreIdentificador }]);
                     setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
+
+                    setForm(prev => ({ ...prev, ip: dispositivo.ip ?? '' }));
+
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -76,14 +88,23 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
-    // FUNCIÓN HELPER: Convierte la cadena a entero, si está vacía, devuelve 0.
+    // Convierte a entero; si está vacío o null, devuelve 0.
     const safeParseInt = (value) => {
-        const trimmedValue = value?.trim();
-        if (trimmedValue === '' || trimmedValue === null || trimmedValue === undefined) {
-            return 0; // Monocromática: se envía 0 si el campo está vacío.
+        if (value == null) return 0;
+
+        if (typeof value === "number") {
+            return value; // ya es número
         }
-        return parseInt(trimmedValue, 10) || 0; // Parsea a int o devuelve 0 si no es un número.
+
+        if (typeof value === "string") {
+            const trimmedValue = value.trim();
+            if (trimmedValue === "") return 0;
+            return parseInt(trimmedValue, 10) || 0;
+        }
+
+        return 0;
     };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -91,7 +112,6 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
         if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
-        if (!form.fechaLectura.trim()) return setError("La fecha de lectura no puede estar vacía.");
 
         // La validación de cartuchos de color se relaja para permitir el envío de "" (vacío) o "0"
 
@@ -103,12 +123,13 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         const payload = {
             idDispositivo: safeParseInt(form.idDispositivo),
             idUsuario: safeParseInt(form.idUsuario),
-            fechaLectura: form.fechaLectura,
             cartuchoAmarillo: safeParseInt(form.cartuchoAmarillo),
             cartuchoMagenta: safeParseInt(form.cartuchoMagenta),
             cartuchoCian: safeParseInt(form.cartuchoCian),
             cartuchoNegro: safeParseInt(form.cartuchoNegro),
-            contenedorResiduos: safeParseInt(form.contenedorResiduos) // ContenedorResiduos SIEMPRE debe ser un número (o 0).
+            contenedorResiduos: safeParseInt(form.contenedorResiduos),
+            kitAlimentador: safeParseInt(form.kitAlimentador),
+            kitMantenimiento: safeParseInt(form.kitMantenimiento)// ContenedorResiduos SIEMPRE debe ser un número (o 0).
         };
 
         try {
@@ -130,29 +151,27 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
     //=============================================================================================
     //Renderizado
-    //============================================================================================
-
+    //=============================================================================================
     return (
-        <form onSubmit={handleSubmit} className="p-2">
-            <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
+        <form onSubmit={handleSubmit} className="p-4 max-w-3xl mx-auto bg-white rounded-md shadow-sm">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Consumible' : 'Crear Nuevo Registro de Consumible'}
             </h2>
-
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-2">
                     {error}
                 </div>
             )}
 
             {mensajeExito && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 animate-pulse">
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-2 animate-pulse">
                     {mensajeExito}
                 </div>
             )}
 
-
-            <div className="mb-4">
-                <div className="mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Columna 1 */}
+                <div>
                     {/* Select Dispositivo */}
                     <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
                     <AsyncSelect
@@ -168,22 +187,24 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                                 ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
                                 : null
                         }
-                        onChange={(opcion) => {
+                        onChange={async (opcion) => {
                             setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
-                            setOpcionesDispositivo((prev) => {
-                                if (opcion && !prev.some(o => o.value === opcion.value)) {
-                                    return [...prev, opcion];
+                            if (opcion) {
+                                try {
+                                    const dispositivo = await getDispositivoById(opcion.value);
+                                    setForm((prev) => ({ ...prev, ip: dispositivo.ip ?? '' }));
+                                } catch (error) {
+                                    console.error("Error al obtener IP del dispositivo:", error);
                                 }
-                                return prev;
-                            });
+                            }
                         }}
                         placeholder="Buscar y seleccionar dispositivo..."
                         isClearable
-                        className="mb-4"
+                        className="mb-2"
                     />
 
                     {/* Select Usuario */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Técnico Asociado</label>
+                    <label className="block text-gray-700 text-sm font-bold">Técnico Asociado</label>
                     <AsyncSelect
                         cacheOptions
                         defaultOptions
@@ -208,93 +229,157 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         }}
                         placeholder="Buscar y seleccionar Técnico..."
                         isClearable
-                        className="mb-4"
+                    />
+
+                    {/* Botón Extraer */}
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            try {
+                                const data = await extraerConsumible(form.ip);
+                                setForm(prev => ({
+                                    ...prev,
+                                    cartuchoAmarillo: data.cartuchoAmarillo,
+                                    cartuchoMagenta: data.cartuchoMagenta,
+                                    cartuchoCian: data.cartuchoCian,
+                                    cartuchoNegro: data.cartuchoNegro,
+                                    contenedorResiduos: data.contenedorResiduos,
+                                    kitAlimentador: data.kitAlimentador,
+                                    kitMantenimiento: data.kitMantenimiento
+                                }));
+                            } catch (err) {
+                                setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                            }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded mb-3"
+                        disabled={!form.idDispositivo || !form.idUsuario}
+                    >
+                        Extraer desde impresora
+                    </button>
+
+                    {/* Botón Extraer y Guardar */}
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            try {
+                                const creado = await extraerYGuardarConsumible(
+                                    form.ip,
+                                    safeParseInt(form.idDispositivo),
+                                    safeParseInt(form.idUsuario)
+                                );
+                                setMensajeExito(`Consumible guardado automáticamente con ID ${creado.idConsumible}`);
+                                setTimeout(() => onClose(true), 1500);
+                            } catch (err) {
+                                setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                            }
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                        disabled={!form.idDispositivo || !form.idUsuario}
+                    >
+                        Extraer y Guardar
+                    </button>
+
+
+                    {/* Input Cartucho Amarillo */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="cartuchoAmarillo">C. Amarillo (Opcional)</label>
+                    <input
+                        id="cartuchoAmarillo"
+                        type="number"
+                        name="cartuchoAmarillo"
+                        value={form.cartuchoAmarillo}
+                        onChange={handleChange}
+                        // Quité 'required' para permitir dejar vacío o '0'
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
+
+                    {/* Input Cartucho Magenta */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="cartuchoMagenta">C. Magenta (Opcional)</label>
+                    <input
+                        id="cartuchoMagenta"
+                        type="number"
+                        name="cartuchoMagenta"
+                        value={form.cartuchoMagenta}
+                        onChange={handleChange}
+                        // Quité 'required'
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
                     />
                 </div>
 
-                {/* Input Fecha Lectura */}
-                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha Lectura</label>
-                <input
-                    type="date"
-                    name="fechaLectura"
-                    value={form.fechaLectura}
-                    onChange={handleChange}
-                    required
-                    className="w-full border rounded px-3 py-2 mb-4"
-                />
+                {/* Columna 2 */}
+                <div>
+                    {/* Input Cartucho Cian */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="cartuchoCian">C. Cian (Opcional)</label>
+                    <input
+                        id="cartuchoCian"
+                        type="number"
+                        name="cartuchoCian"
+                        value={form.cartuchoCian}
+                        onChange={handleChange}
+                        // Quité 'required'
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
 
-                {/* Input Cartucho Amarillo */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoAmarillo">C. Amarillo (Opcional)</label>
-                <input
-                    id="cartuchoAmarillo"
-                    type="number"
-                    name="cartuchoAmarillo"
-                    value={form.cartuchoAmarillo}
-                    onChange={handleChange}
-                    // Quité 'required' para permitir dejar vacío o '0'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
+                    {/* Input Cartucho Negro */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="cartuchoNegro">C. Negro</label>
+                    <input
+                        id="cartuchoNegro"
+                        type="number"
+                        name="cartuchoNegro"
+                        value={form.cartuchoNegro}
+                        onChange={handleChange}
+                        required
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
 
-                {/* Input Cartucho Magenta */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoMagenta">C. Magenta (Opcional)</label>
-                <input
-                    id="cartuchoMagenta"
-                    type="number"
-                    name="cartuchoMagenta"
-                    value={form.cartuchoMagenta}
-                    onChange={handleChange}
-                    // Quité 'required'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
+                    {/* Input Contenedor Residuos */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="contenedorResiduos">C. Residuos</label>
+                    <input
+                        id="contenedorResiduos"
+                        type="number"
+                        name="contenedorResiduos"
+                        value={form.contenedorResiduos}
+                        onChange={handleChange}
+                        required
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
 
-                {/* Input Cartucho Cian */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoCian">C. Cian (Opcional)</label>
-                <input
-                    id="cartuchoCian"
-                    type="number"
-                    name="cartuchoCian"
-                    value={form.cartuchoCian}
-                    onChange={handleChange}
-                    // Quité 'required'
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
+                    {/* Input Kit Alimentador */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="kitAlimentador">K. Alim.</label>
+                    <input
+                        id="kitAlimentador"
+                        type="number"
+                        name="kitAlimentador"
+                        value={form.kitAlimentador}
+                        onChange={handleChange}
+                        required
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
 
-                {/* Input Cartucho Negro */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cartuchoNegro">C. Negro</label>
-                <input
-                    id="cartuchoNegro"
-                    type="number"
-                    name="cartuchoNegro"
-                    value={form.cartuchoNegro}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
-                {/* Input Contenedor Residuos */}
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contenedorResiduos">C. Residuos</label>
-                <input
-                    id="contenedorResiduos"
-                    type="number"
-                    name="contenedorResiduos"
-                    value={form.contenedorResiduos}
-                    onChange={handleChange}
-                    required
-                    disabled={cargando || !!mensajeExito}
-                    className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                />
-
+                    {/* Input Kit Mantenimiento */}
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="kitMantenimiento">K. Mantto.</label>
+                    <input
+                        id="kitMantenimiento"
+                        type="number"
+                        name="kitMantenimiento"
+                        value={form.kitMantenimiento}
+                        onChange={handleChange}
+                        required
+                        disabled={cargando || !!mensajeExito}
+                        className="w-full border border-gray-300 rounded px-2 py-2"
+                    />
+                </div>
             </div>
 
-
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between mt-2">
                 <button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition duration-150"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition duration-150"
                     disabled={cargando || !!mensajeExito}
                 >
                     {cargando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar')}
@@ -302,7 +387,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 <button
                     type="button"
                     onClick={() => onClose(false)}
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition duration-150"
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-2 rounded transition duration-150"
                     disabled={cargando}
                 >
                     Cancelar

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createProveedor, updateProveedor } from '../../../services/api';
 
 const ProveedorForm = ({ proveedor, onClose }) => {
@@ -17,7 +17,7 @@ const ProveedorForm = ({ proveedor, onClose }) => {
     useEffect(() => {
         if (proveedor) {
             // Inicialización de estados al editar
-            setNombre(proveedor.nombre || '');
+            setNombre(proveedor.nombreProveedor || '');
             setContacto(proveedor.contacto || '');
             setTelefono(proveedor.telefono || '');
             setEstado(proveedor.estado ?? true);
@@ -31,10 +31,9 @@ const ProveedorForm = ({ proveedor, onClose }) => {
         e.preventDefault();
 
         // Validación de campos obligatorios en el frontend
-        if (!nombre.trim() || !contacto.trim() || !telefono.trim()) {
-            setError("Todos los campos (Nombre, Contacto, Teléfono) son obligatorios.");
-            return;
-        }
+        if (!nombre.trim()) return setError("El Nombre no puede estar vacío.");
+        if (!contacto.trim()) return setError("El Nombre del contacto no puede estar vacío.");
+        if (!telefono.trim()) return setError("Debe escribir algún número de contacto.");
 
         setCargando(true);
         setError(null);
@@ -43,7 +42,7 @@ const ProveedorForm = ({ proveedor, onClose }) => {
         // Objeto que enviamos a la API
 
         const dataToSend = {
-            nombre: nombre.trim(),
+            nombreProveedor: nombre.trim(),
             contacto: contacto.trim(),
             telefono: telefono.trim(),
             estado: estado
@@ -89,9 +88,9 @@ const ProveedorForm = ({ proveedor, onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                {isEditing ? `Editar Proveedor: ${proveedor.nombre}` : 'Crear Nuevo Proveedor'}
+                {isEditing ? `Editar Proveedor: ${proveedor.nombreProveedor}` : 'Crear Nuevo Proveedor'}
             </h3>
 
             {error && (
@@ -108,17 +107,15 @@ const ProveedorForm = ({ proveedor, onClose }) => {
 
             {/* Campo NOMBRE */}
             <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="nombre">
-                    Nombre del Proveedor (Nombre)
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="nombreProveedor">
+                    Nombre del Proveedor
                 </label>
                 <input
-                    id="nombre"
+                    id="nombreProveedor"
                     type="text"
-                    name="nombre"
+                    name="nombreProveedor"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    required
-                    maxLength={50} // Máximo 50 caracteres según tu DTO
                     disabled={cargando || !!mensajeExito}
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
@@ -135,8 +132,7 @@ const ProveedorForm = ({ proveedor, onClose }) => {
                     name="contacto"
                     value={contacto}
                     onChange={(e) => setContacto(e.target.value)}
-                    required
-                    maxLength={50} // Máximo 50 caracteres según tu DTO
+                    maxLength={50} // Máximo 50 caracteres según el DTO
                     disabled={cargando || !!mensajeExito}
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
@@ -154,7 +150,7 @@ const ProveedorForm = ({ proveedor, onClose }) => {
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
                     required
-                    maxLength={30} // Máximo 30 caracteres según tu DTO
+                    maxLength={30} // Máximo 30 caracteres según el DTO
                     disabled={cargando || !!mensajeExito}
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
@@ -182,25 +178,24 @@ const ProveedorForm = ({ proveedor, onClose }) => {
             {/* Fin del Campo Estado */}
 
 
-            <div className="flex justify-end space-x-2 mt-6">
+            <div className="flex items-center justify-between mt-6">
+                <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition duration-150"
+                    disabled={cargando || !!mensajeExito}
+                >
+                    {cargando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar')}
+                </button>
+
                 <button
                     type="button"
-                    onClick={() => onClose(null)}
-                    disabled={cargando}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
+                    onClick={() => onClose(false)}
+                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
+                    disabled={cargando || !!mensajeExito}
                 >
                     Cancelar
                 </button>
-                <button
-                    type="submit"
-                    disabled={cargando || !!mensajeExito}
-                    className={`font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ${cargando || !!mensajeExito
-                        ? 'bg-indigo-300'
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                        }`}
-                >
-                    {cargando ? 'Guardando...' : 'Guardar Proveedor'}
-                </button>
+
             </div>
         </form>
     );

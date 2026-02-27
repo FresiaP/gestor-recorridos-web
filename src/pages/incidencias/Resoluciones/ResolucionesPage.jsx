@@ -5,7 +5,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useCallback, useEffect, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
-    buscarDispositivosSelect,
+    buscarActivosSelect,
     buscarIncidenciasSelect,
     buscarUsuarioSelect,
     deleteResolucion,
@@ -21,7 +21,7 @@ const ResolucionPage = () => {
     const [error, setError] = useState(null);
 
     // --- ESTADOS PARA FILTROS AVANZADOS ---
-    const [criterioBusqueda, setCriterioBusqueda] = useState("dispositivo");
+    const [criterioBusqueda, setCriterioBusqueda] = useState("activo");
     const [opcionesBusqueda, setOpcionesBusqueda] = useState([]);
     const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
 
@@ -43,15 +43,15 @@ const ResolucionPage = () => {
     const [ResolucionReasignando, setResolucionReasignando] = useState(null);
     const [nuevaIncidencia, setNuevaIncidencia] = useState(null);
 
-    // 1. EFECTO: Cargar la lista de opciones (Dispositivo vs Usuario)
+    // 1. EFECTO: Cargar la lista de opciones (Activo vs Usuario)
     useEffect(() => {
         const cargarOpciones = async () => {
             setOpcionesBusqueda([]);
             setElementoSeleccionado(null);
             try {
                 let data = [];
-                if (criterioBusqueda === "dispositivo") {
-                    data = await buscarDispositivosSelect();
+                if (criterioBusqueda === "activo") {
+                    data = await buscarActivosSelect();
                 } else if (criterioBusqueda === "usuario") {
                     data = await buscarUsuarioSelect();
                 }
@@ -227,12 +227,12 @@ const ResolucionPage = () => {
                             onChange={(e) => setCriterioBusqueda(e.target.value)}
                             className="border border-gray-300 rounded-lg p-2 text-sm shadow-sm bg-white h-[40px] min-w-[120px]"
                         >
-                            <option value="dispositivo">Dispositivo</option>
+                            <option value="activo">Activos</option>
                             <option value="usuario">Usuario</option>
                         </select>
                     </div>
 
-                    {/* 2. AUTOCOMPLETE: Selector de Dispositivo o Usuario (Tamaño fijo) */}
+                    {/* 2. AUTOCOMPLETE: Selector de Activo o Usuario (Tamaño fijo) */}
                     <div className="w-56">
                         <Autocomplete
                             options={opcionesBusqueda}
@@ -245,7 +245,7 @@ const ResolucionPage = () => {
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
-                                    label={`Seleccionar ${criterioBusqueda === 'dispositivo' ? 'Dispositivo' : 'Usuario'}`}
+                                    label={`Seleccionar ${criterioBusqueda === 'activo' ? 'Activo' : 'Usuario'}`}
                                     variant="outlined"
                                     size="small"
                                     placeholder={`Escribe para buscar ${criterioBusqueda}...`}
@@ -329,8 +329,8 @@ const ResolucionPage = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dispositivo</th>
+
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Activo</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle Incidencia</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Resolución</th>
@@ -343,9 +343,9 @@ const ResolucionPage = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {resoluciones.map((r) => (
                                 <tr key={r.idResolucion}>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{r.idResolucion}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{r.nombre}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{r.descripcion}</td>
+
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.nombreIdentificador}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{r.nombreCategoria}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{r.detalle}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{r.fechaResolucion?.slice(0, 10)}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{r.tiempoResolucionDias}</td>

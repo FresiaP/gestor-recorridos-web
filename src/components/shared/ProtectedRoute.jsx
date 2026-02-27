@@ -1,4 +1,3 @@
-import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,11 +14,19 @@ const ProtectedRoute = ({ children, permisoRequerido }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // 3. Verifica si el usuario tiene el permiso necesario (usa la función corregida)
-    if (tienePermiso(permisoRequerido)) {
-        // Si tiene el permiso o si no se requiere un permiso específico ([]), renderiza el componente hijo
+    // 3. Verifica si el usuario tiene el permiso necesario
+    if (!permisoRequerido || (Array.isArray(permisoRequerido) && permisoRequerido.length === 0)) {
+        // No se requiere permiso específico, acceso libre
         return children;
     }
+
+    if (tienePermiso(permisoRequerido)) {
+        return children;
+    }
+
+
+    console.log("permiso requerido:", permisoRequerido);
+    console.log("usuario:", usuario);
 
     // 4. Si el usuario está logueado pero no tiene el permiso, redirige a No Autorizado
     return <Navigate to="/unauthorized" replace />;

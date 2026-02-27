@@ -83,6 +83,8 @@ export const iconMap = {
     '/infraestructura/contratos': IconoInfraestructura,
     '/infraestructura/modelos': IconoInfraestructura,
     '/infraestructura/ubicaciones': IconoInfraestructura,
+    '/infraestructura/activos': IconoInfraestructura,
+    '/infraestructura/servicios': IconoInfraestructura,
     '/infraestructura/dispositivos': IconoInfraestructura,
     '/infraestructura/otrosdispositivo': IconoInfraestructura,
 
@@ -94,7 +96,6 @@ export const iconMap = {
     // Incidencias
     '/incidencia/incidencias': IconoIncidencia,
     '/incidencia/resoluciones': IconoIncidencia,
-    '/incidencia/estadodispositivo': IconoIncidencia,
 
     // Auditoría
     '/auditoria': IconoAuditoria,

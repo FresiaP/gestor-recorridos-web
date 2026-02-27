@@ -1,8 +1,8 @@
-import { CheckCircleIcon, PencilIcon, TrashIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import { useFiltroPaginado } from '../../../hooks/useFiltroPaginado';
-import { deleteOtrosDispositivo, exportarOtrosDispositivos, getOtrosDispositivosPaginados, toggleOtrosDispositivoEstado } from '../../../services/api';
+import { deleteOtrosDispositivo, exportarOtrosDispositivos, getOtrosDispositivosPaginados } from '../../../services/api';
 import OtrosDispositivoForm from './OtrosDispositivoForm';
 
 
@@ -42,26 +42,12 @@ const OtrosDispositivoPage = () => {
         setIsModalOpen(true);
     };
 
-    const handleToggleEstado = async (otrosdispositivo) => {
-        const nuevoEstado = !otrosdispositivo.estado;
-        const accion = nuevoEstado ? 'activar' : 'desactivar';
-
-        if (!window.confirm(`¿Estás seguro de que quieres ${accion} el dispositivo "${otrosdispositivo.nombre}"?`)) return;
-
-        try {
-            await toggleOtrosDispositivoEstado(otrosdispositivo.idOtrosDispositivos, nuevoEstado);
-            alert(`Dispositivo "${otrosdispositivo.nombre}" ${accion}da con éxito.`);
-            await fetchData(paginaActual);
-        } catch (err) {
-            alert(`Error al ${accion}: ${err.message}`);
-        }
-    };
-    const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el dispositivo "${nombre}"? Esta acción es irreversible.`)) return;
+    const handleDelete = async (id, nombreIdentificador) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el dispositivo "${nombreIdentificador}"? Esta acción es irreversible.`)) return;
 
         try {
             await deleteOtrosDispositivo(id);
-            alert(`Dispositivo "${nombre}" eliminada con éxito.`);
+            alert(`Dispositivo "${nombreIdentificador}" eliminada con éxito.`);
             await fetchData(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
@@ -75,8 +61,7 @@ const OtrosDispositivoPage = () => {
     };
 
 
-    // --- Renderizado Condicional ---
-    if (cargando) return <div className="p-12 text-gray-500">Cargando otros dispositivos...</div>;
+    // --- Renderizado ---
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
@@ -96,14 +81,13 @@ const OtrosDispositivoPage = () => {
                         className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Crear Nuevo Dispositivo
+                    Nuevo Dispositivo
                 </button>
 
                 <div className="flex items-center space-x-4">
-                    <BuscadorDebounce
+                    <BuscadorDebounce className="w-64"
                         value={searchTerm}
-                        onDebouncedChange={(val) => setSearchTerm(val)}
-                        disabled={cargando}
+                        onDebouncedChange={setSearchTerm}
                         placeholder="Buscar por Nombre, serie..."
                     />
 
@@ -114,8 +98,9 @@ const OtrosDispositivoPage = () => {
                         className="border border-gray-300 rounded-lg p-2 text-sm shadow-sm"
                     >
                         <option value="">Todos</option> {/* Valor vacío o 'todo' para no filtrar */}
-                        <option value="activo">Activos</option>
-                        <option value="inactivo">Inactivos</option>
+                        <option value="Activo">Activos</option>
+                        <option value="Inactivo">Inactivos</option>
+                        <option value="Descartado">Descartados</option>
                     </select>
 
                     {/* EXPORTAR*/}
@@ -145,94 +130,80 @@ const OtrosDispositivoPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serie</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitio</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Nombre</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Serie</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Características</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Tipo</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Categoría</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Modelo</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Marca</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Ubicación</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Sitio</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Estado</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {otrosdispositivos.map((o) => (
-                            <tr key={o.idOtrosDispositivos}>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{o.idOtrosDispositivos}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.nombre}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.serie}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.nombreTipo}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.descripcion}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionModelo}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionMarca}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionUbicacion}</td>
-                                <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionSitio}</td>
-                                <td className="px-6 py-4">
-                                    <span
-                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${o.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            }`}
-                                    >
-                                        {o.estado ? 'Activa' : 'Inactiva'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right text-sm font-medium">
-
-                                    {/* EDITAR */}
-                                    <button
-                                        onClick={() => handleEdit(o)}
-                                        className="text-indigo-600 hover:text-indigo-900 relative group"
-                                    >
-                                        <PencilIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Editar
-                                        </span>
-                                    </button>
-
-                                    {/* ACTIVAR/ DESACTIVAR */}
-                                    <button
-                                        onClick={() => handleToggleEstado(o)}
-                                        className={`relative group ${o.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                                            }`}
-                                    >
-                                        {o.estado ? (
-                                            <XCircleIcon className="h-5 w-5" />
-                                        ) : (
-                                            <CheckCircleIcon className="h-5 w-5" />
-                                        )}
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            {o.estado ? 'Desactivar' : 'Activar'}
-                                        </span>
-                                    </button>
-
-                                    {/* ELIMINAR */}
-                                    <button
-                                        onClick={() => handleDelete(o.idOtrosDispositivos, o.nombre)}
-                                        className="text-red-600 hover:text-red-900 relative group"
-                                    >
-                                        <TrashIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Eliminar
-                                        </span>
-                                    </button>
+                        {cargando ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                                    Cargando...
                                 </td>
                             </tr>
-                        ))}
-                        {otrosdispositivos.length === 0 && (
+                        ) : otrosdispositivos.length === 0 ? (
                             <tr>
-                                <td colSpan="12" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
                                     No se encontraron dispositivos.
                                 </td>
                             </tr>
+                        ) : (
+                            otrosdispositivos.map((o) => (
+                                <tr key={o.idOtrosDispositivos}>
+
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.nombreIdentificador}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.serie}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.caracteristicas}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.nombreTipo}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.nombreCategoria}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionModelo}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionMarca}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionUbicacion}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.descripcionSitio}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{o.nombreEstado}</td>
+
+                                    <td className="px-6 py-4 text-right text-sm font-medium">
+
+                                        {/* EDITAR */}
+                                        <button
+                                            onClick={() => handleEdit(o)}
+                                            className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
+                                        </button>
+
+                                        {/* ELIMINAR */}
+                                        <button
+                                            onClick={() => handleDelete(o.idOtrosDispositivos, o.nombreIdentificador)}
+                                            className="text-red-600 hover:text-red-900 relative group"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
 

@@ -13,7 +13,7 @@ const TipoForm = ({ tipo, onClose }) => {
 
     useEffect(() => {
         if (tipo) {
-            setNombre(tipo.nombre || '');
+            setNombre(tipo.nombreTipo || '');
             setEstado(tipo.estado ?? true);
         } else {
             setEstado(true);
@@ -35,7 +35,7 @@ const TipoForm = ({ tipo, onClose }) => {
         // Objeto que enviamos a la API
 
         const dataToSend = {
-            nombre: nombre.trim(),
+            nombreTipo: nombre.trim(),
             estado: estado
         };
 
@@ -79,7 +79,7 @@ const TipoForm = ({ tipo, onClose }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleSubmit} noValidate className="p-4">
             <h2 className="text-2xl font-semibold mb-4">
                 {isEditing ? 'Editar Tipo' : 'Crear Nuevo Tipo'}
             </h2>

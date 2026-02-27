@@ -1,16 +1,13 @@
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
 import { AuthProvider } from './context/AuthContext';
-
-import DashboardLayout from "./components/layout/DashboardLayout";
-import Unauthorized from "./pages/shared/Unauthorized";
-
 import AuditoriaPage from "./pages/auditoria/AuditoriaPage";
 import Configuracion from "./pages/configuracion/Configuracion";
 import Home from "./pages/dashboard/Home";
-import EstadoDispositivoPage from "./pages/incidencias/EstadoDispositivos/EstadoDispositivoPage";
 import IncidenciaPage from "./pages/incidencias/Incidencias/IncidenciaPage";
 import ResolucionesPage from "./pages/incidencias/Resoluciones/ResolucionesPage";
+import ActivoPage from './pages/infraestructura/Activos/ActivoPage';
 import CategoriasPage from './pages/infraestructura/Categorias/CategoriaPage';
 import ContratoPage from './pages/infraestructura/Contratos/ContratoPage';
 import DispositivoPage from './pages/infraestructura/Dispositivos/DispositivoPage';
@@ -18,14 +15,16 @@ import MarcaPage from './pages/infraestructura/Marcas/MarcaPage';
 import ModeloPage from './pages/infraestructura/Modelos/ModeloPage';
 import OtrosDispositivoPage from './pages/infraestructura/OtrosDispositivos/OtrosDispositivoPage';
 import ProveedorPage from './pages/infraestructura/Proveedores/ProveedorPage';
+import ServicioPage from './pages/infraestructura/Servicios/ServicioPage';
 import SitioPage from './pages/infraestructura/Sitios/SitioPage';
 import TipoPage from './pages/infraestructura/Tipos/TipoPage';
 import UbicacionPage from './pages/infraestructura/Ubicaciones/UbicacionPage';
 import ConsumiblePage from "./pages/recorridos/Consumibles/ConsumiblePage";
+import ConsumoMensualPage from "./pages/recorridos/ConsumoMensual/ConsumoMensualPage";
 import ConsumoPage from "./pages/recorridos/Consumos/ConsumoPage";
 import ParametroPage from "./pages/recorridos/ParametroAmbiente/ParametroPage";
-import ReporteConsumoPage from "./pages/reportes/ReporteConsumoPage";
 import ReporteVencimientoContratoPage from "./pages/reportes/ReporteVencimientoContratoPage";
+import Unauthorized from "./pages/shared/Unauthorized";
 import AsignacionPermisoPage from "./pages/usuarios/AsignacionPermisoPage";
 import Login from "./pages/usuarios/Login";
 import PermisosPage from "./pages/usuarios/PermisosPage";
@@ -172,7 +171,30 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* 7. RUTA PARA DISPOSITIVOS */}
+          {/* 7. RUTA PARA ACTIVOS */}
+          <Route
+            path="/infraestructura/activos"
+            element={
+              <ProtectedRoute permisoRequerido="ACTIVO_LEER">
+                <DashboardLayout pageTitle="Activos" activePath="/infraestructura/activos">
+                  <ActivoPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* 8. RUTA PARA SERVICIOS */}
+
+          <Route
+            path="/infraestructura/servicios"
+            element={
+              <ProtectedRoute permisoRequerido="SERVICIO_LEER">
+                <DashboardLayout pageTitle="Servicios" activePath="/infraestructura/servicios">
+                  <ServicioPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* 9. RUTA PARA DISPOSITIVOS */}
           <Route
             path="/infraestructura/dispositivos"
             element={
@@ -184,7 +206,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* 7. RUTA PARA OTROS DISPOSITIVOS */}
+          {/* 10. RUTA PARA OTROS DISPOSITIVOS */}
           <Route
             path="/infraestructura/otrosdispositivo"
             element={
@@ -196,7 +218,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* 8. Ruta de Tipos */}
+          {/* 11. Ruta de Tipos */}
           <Route
             path="/infraestructura/Tipos"
             element={
@@ -207,11 +229,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* 9. Ruta de Usuarios */}
+          {/* 12. Ruta de Usuarios */}
           <Route
             path="/usuarios"
             element={
-              // PROPIEDAD CORRECTA: 'permisoRequerido'
               <ProtectedRoute permisoRequerido="USUARIO_LEER">
                 <DashboardLayout pageTitle="Usuarios" activePath="/usuarios">
                   <UsuarioPage />
@@ -220,11 +241,10 @@ function App() {
             }
           />
 
-          {/* 10. Ruta de Permisos */}
+          {/* 13. Ruta de Permisos */}
           <Route
             path="/usuarios/permisos"
             element={
-              // PROPIEDAD CORRECTA: 'permisoRequerido'
               <ProtectedRoute permisoRequerido="PERMISO_LEER">
                 <DashboardLayout pageTitle="Permisos" activePath="/usuarios/permisos">
                   <PermisosPage />
@@ -233,7 +253,7 @@ function App() {
             }
           />
 
-          {/* 11. Ruta de Asignación de Permisos */}
+          {/* 14. Ruta de Asignación de Permisos */}
           <Route
             path="/usuarios/asignacion"
             element={
@@ -245,7 +265,7 @@ function App() {
             }
           />
 
-          {/* 12. Ruta de Consumibles */}
+          {/* 15. Ruta de Consumibles */}
           <Route
             path="/recorridos/consumibles"
             element={
@@ -257,7 +277,7 @@ function App() {
             }
           />
 
-          {/* 13. Ruta de Consumibles */}
+          {/* 16. Ruta de Consumibles */}
           <Route
             path="/recorridos/consumos"
             element={
@@ -269,7 +289,19 @@ function App() {
             }
           />
 
-          {/* 14. Ruta de Parámetros */}
+          {/* 17. Ruta de ConsumiblesMensuales */}
+          <Route
+            path="/recorridos/consumosMensuales"
+            element={
+              <ProtectedRoute permisoRequerido="CONSUMO_LEER">
+                <DashboardLayout pageTitle="Generar Consumos Mensuales" activePath="/recorridos/consumosMensuales">
+                  <ConsumoMensualPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 18. Ruta de Parámetros */}
           <Route
             path="/recorridos/parametros"
             element={
@@ -281,7 +313,7 @@ function App() {
             }
           />
 
-          {/* 15. Ruta de Incidencias */}
+          {/* 19. Ruta de Incidencias */}
           <Route
             path="/incidencia/incidencias"
             element={
@@ -293,7 +325,7 @@ function App() {
             }
           />
 
-          {/* 16. Ruta de Incidencias */}
+          {/* 20. Ruta de Incidencias */}
           <Route
             path="/incidencia/resoluciones"
             element={
@@ -305,19 +337,7 @@ function App() {
             }
           />
 
-          {/* 17. Ruta de Incidencias */}
-          <Route
-            path="/incidencia/estadodispositivo"
-            element={
-              <ProtectedRoute permisoRequerido="ESTADODISPOSITIVO_LEER">
-                <DashboardLayout pageTitle="Registrar Estado de otros Dispositivos" activePath="/incidencia/estadodispositivo">
-                  <EstadoDispositivoPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* 18. Ruta de Auditoria */}
+          {/* 21. Ruta de Auditoria */}
           <Route
             path="/auditoria"
             element={
@@ -329,19 +349,7 @@ function App() {
             }
           />
 
-          {/* 19. Reporte Consumo */}
-          <Route
-            path="/reportes/reporteconsumo"
-            element={
-              <ProtectedRoute permisoRequerido="CONSUMO_LEER">
-                <DashboardLayout pageTitle="Reportes de Consumo" activePath="/reportes/reporteconsumo">
-                  <ReporteConsumoPage />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* 20. Reporte Vencimiento Contrato */}
+          {/* 22. Reporte Vencimiento Contrato */}
           <Route
             path="/reportes/vencimientocontratos"
             element={

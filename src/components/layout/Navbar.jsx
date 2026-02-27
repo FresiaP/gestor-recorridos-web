@@ -1,5 +1,5 @@
 
-const Navbar = ({ setIsMenuOpen, pageTitle, usuario, onLogout }) => {
+const Navbar = ({ setIsMenuOpen, pageTitle, usuario, onLogout, isMenuOpen }) => {
     // Nombre visible del usuario (si no hay nombre, mostramos rol o "Usuario")
     const nombreUsuarioVisible = usuario?.nombre || usuario?.rol || 'Usuario';
     const iniciales = nombreUsuarioVisible
@@ -10,7 +10,7 @@ const Navbar = ({ setIsMenuOpen, pageTitle, usuario, onLogout }) => {
         .substring(0, 2);
 
     return (
-        <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white shadow-md z-20 flex items-center justify-between px-4 lg:px-6">
+        <header className={`fixed top-0 right-0 h-16 bg-white shadow-md z-20 flex items-center justify-between px-4 lg:px-6 transition-all duration-300 ${isMenuOpen ? "lg:left-64" : "lg:left-16"}`} >
 
             {/* Botón de Menú (Visible solo en móvil) */}
             <button
