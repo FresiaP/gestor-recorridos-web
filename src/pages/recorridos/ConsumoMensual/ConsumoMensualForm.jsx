@@ -82,8 +82,10 @@ const ConsumoMensualForm = ({ consumoMensual, onClose }) => {
                 setError("No se pudo generar el consolidado.");
             }
         } catch (err) {
-            setError(`Error al generar consolidado: ${err.message}`);
+            const errorMessage = err.response?.data?.mensaje || err.message || 'Error al generar el consolidado.';
+            setError(`Error al generar consolidado: ${errorMessage}`);
         }
+
     };
 
 
@@ -119,9 +121,11 @@ const ConsumoMensualForm = ({ consumoMensual, onClose }) => {
     //Renderizado
     //=============================================================================================================================
     return (
-        <form onSubmit={handleSubmit} className="p-2">
+        <form onSubmit={handleSubmit} noValidate className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
+
                 {isEditing ? 'Editar Consumo Mensual' : 'Generar Consumo Mensual'}
+
             </h2>
 
             {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}

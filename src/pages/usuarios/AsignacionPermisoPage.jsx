@@ -59,7 +59,6 @@ const AsignacionesPermisosPage = () => {
   };
 
   // Renderizado
-  if (cargando) return <div className="p-12 text-gray-500">Cargando asignaciones...</div>;
   if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
   return (
@@ -84,8 +83,7 @@ const AsignacionesPermisosPage = () => {
         <div className="flex items-center space-x-4">
           <BuscadorDebounce
             value={searchTerm}
-            onDebouncedChange={(val) => setSearchTerm(val)}
-            disabled={cargando}
+            onDebouncedChange={setSearchTerm}
             placeholder="Buscar por Usuario o Permiso..."
           />
           {/*  botones (Exportar, Select tamaño página) ... */}
@@ -117,41 +115,48 @@ const AsignacionesPermisosPage = () => {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-4">
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permiso</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              <th className="sticky top-0 bg-gray-50  px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Usuario</th>
+              <th className="sticky top-0 bg-gray-50  px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Permiso</th>
+              <th className="sticky top-0 bg-gray-50  px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase z-10">Acciones</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {asignaciones.map((a) => (
-              <tr key={a.idUsuarioPermiso}>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{a.idUsuarioPermiso}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{a.nombreApellido}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{a.descripcion}</td>
-
-                <td className="px-6 py-4 text-right text-sm font-medium">
-
-                  {/* ELIMINAR */}
-                  <button onClick={() => handleDelete(a.idUsuarioPermiso, a.nombreApellido)} className="text-red-600 hover:text-red-900 relative group"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                      Eliminar
-                    </span>
-                  </button>
+            {cargando ? (
+              <tr>
+                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                  Cargando...
                 </td>
               </tr>
-            ))}
-            {asignaciones.length === 0 && !cargando && (
+            ) : asignaciones.length === 0 ? (
               <tr>
-                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">No se encontraron asignaciones.</td>
+                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                  No se encontraron asignaciones.
+                </td>
               </tr>
+            ) : (
+              asignaciones.map((a) => (
+                <tr key={a.idUsuarioPermiso}>
+                  <td className="px-6 py-4 text-sm text-gray-500">{a.nombreApellido}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{a.descripcion}</td>
+
+                  <td className="px-6 py-4 text-right text-sm font-medium">
+
+                    {/* ELIMINAR */}
+                    <button onClick={() => handleDelete(a.idUsuarioPermiso, a.nombreApellido)} className="text-red-600 hover:text-red-900 relative group"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                        Eliminar
+                      </span>
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

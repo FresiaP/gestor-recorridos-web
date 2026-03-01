@@ -14,6 +14,8 @@ const getRefreshToken = () => sessionStorage.getItem('refreshToken');
 export const guardarToken = (token, refreshToken) => {
     sessionStorage.setItem('token', token.replace(/"/g, ''));
     sessionStorage.setItem('refreshToken', refreshToken.replace(/"/g, ''));
+
+
 };
 
 export const eliminarToken = () => {
@@ -32,6 +34,8 @@ const api = axios.create({
 api.interceptors.request.use(config => {
     const token = getToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
+
+
     return config;
 }, error => Promise.reject(error));
 
@@ -47,7 +51,7 @@ api.interceptors.response.use(
             const refreshToken = getRefreshToken();
             if (refreshToken) {
                 try {
-                    // CORREGIDO: enviar objeto JSON con refreshToken
+                    // enviar objeto JSON con refreshToken
                     const res = await api.post('/auth/refresh', { refreshToken }, {
                         headers: { 'Content-Type': 'application/json' }
                     });
@@ -2602,15 +2606,16 @@ export async function reasignarResolucion(idResolucion, nuevoIdIncidencia) {
 export const deleteResolucion = (id) => api.delete(`/Resolucion/${id}`).then(res => res.data);
 
 //===================================================================================================
-//Auditorias
+// Auditorias
 //===================================================================================================
 export const getAuditoriasPaginadas = async (
     pagina = 1,
     tamano = 10,
     query = '',
-    fechaDesde = '',
-    fechaHasta = '',
-    moduloFiltro = ''
+    fechaInicio = '',
+    fechaFin = '',
+    moduloFiltro = '',
+    tipoBusquedaFecha = 'rango'
 ) => {
     try {
         const params = new URLSearchParams();
@@ -2622,9 +2627,12 @@ export const getAuditoriasPaginadas = async (
         if (query?.trim()) params.append('query', query.trim());
         if (moduloFiltro?.trim()) params.append('moduloFiltro', moduloFiltro.trim());
 
-        // Las fechas se pasan como string y ASP.NET Core las parsea a DateTime?
-        if (fechaDesde?.trim()) params.append('fechaDesde', fechaDesde.trim());
-        if (fechaHasta?.trim()) params.append('fechaHasta', fechaHasta.trim());
+        // Fechas
+        if (fechaInicio?.trim()) params.append('fechaInicio', fechaInicio.trim());
+        if (fechaFin?.trim()) params.append('fechaFin', fechaFin.trim());
+
+        // Tipo de búsqueda de fecha
+        if (tipoBusquedaFecha?.trim()) params.append('tipoBusquedaFecha', tipoBusquedaFecha.trim());
 
         const url = `/Auditorias?${params.toString()}`;
         const response = await api.get(url);
@@ -2639,30 +2647,31 @@ export const getAuditoriaById = (id) => apiGet(`/Auditorias/${id}`);
 
 export const exportarAuditorias = async ({
     query = '',
-    fechaDesde = '',
-    fechaHasta = '',
-    moduloFiltro = ''
+    fechaInicio = '',
+    fechaFin = '',
+    moduloFiltro = '',
+    tipoBusquedaFecha = 'rango'
 }) => {
     try {
         const params = new URLSearchParams();
 
         if (query?.trim()) params.append('query', query.trim());
         if (moduloFiltro?.trim()) params.append('moduloFiltro', moduloFiltro.trim());
-        if (fechaDesde?.trim()) params.append('fechaDesde', fechaDesde.trim());
-        if (fechaHasta?.trim()) params.append('fechaHasta', fechaHasta.trim());
+        if (fechaInicio?.trim()) params.append('fechaInicio', fechaInicio.trim());
+        if (fechaFin?.trim()) params.append('fechaFin', fechaFin.trim());
+        if (tipoBusquedaFecha?.trim()) params.append('tipoBusquedaFecha', tipoBusquedaFecha.trim());
 
         const url = `/Auditorias/exportar?${params.toString()}`;
 
         const response = await api.get(url, { responseType: 'blob' });
 
-        // Lógica de descarga de archivo (similar a la usada en exportarUsuarios/exportarMarcas)
+        // Lógica de descarga de archivo
         const contentDisposition = response.headers['content-disposition'];
         let fileName = 'auditoria_export.xlsx';
 
         if (contentDisposition) {
             const match = contentDisposition.match(/filename="?(.+)"?$/);
             if (match && match[1]) {
-                // Eliminar posibles comillas sobrantes
                 fileName = match[1].replace(/"/g, '');
             }
         }
@@ -2674,13 +2683,14 @@ export const exportarAuditorias = async ({
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(urlBlob); // Limpiar el objeto URL
+        window.URL.revokeObjectURL(urlBlob);
 
         return true;
     } catch (error) {
         throw new Error(extractErrorMessage(error, 'Error al exportar auditorías.'));
     }
 };
+
 
 //=====================================================================================================
 //Reportes

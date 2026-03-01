@@ -1,5 +1,8 @@
 // src/pages/auditoria/AuditoriaPage.jsx
 
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useCallback, useEffect, useState } from 'react';
 import BuscadorDebounce from '../../components/ui/BuscadorDebounce';
 import {
@@ -17,8 +20,9 @@ function AuditoriaPage() {
 
     // --- 2. ESTADOS DE FILTROS ---
     const [query, setQuery] = useState(''); // Búsqueda de texto libre (Acción/Detalle)
-    const [fechaDesde, setFechaDesde] = useState('');
-    const [fechaHasta, setFechaHasta] = useState('');
+    // Estados de fecha
+    const [fechaInicio, setFechaInicio] = useState(null);
+    const [fechaFin, setFechaFin] = useState(null);
     const [moduloFiltro, setModuloFiltro] = useState('');
 
     // Lista de módulos fijos para el selector 
@@ -43,14 +47,17 @@ function AuditoriaPage() {
     const fetchAuditorias = useCallback(async (page) => {
         setLoading(true);
         setError(null);
+
+        const inicioStr = fechaInicio ? fechaInicio.toISOString().split('T')[0] : '';
+        const finStr = fechaFin ? fechaFin.toISOString().split('T')[0] : '';
+
         try {
-            // Conversión de fechas a formato de cadena esperado por el API (si usas Date objects, ajusta esto)
             const data = await getAuditoriasPaginadas(
                 page,
                 tamanoPagina,
                 query,
-                fechaDesde,
-                fechaHasta,
+                inicioStr,
+                finStr,
                 moduloFiltro
             );
 
@@ -63,7 +70,8 @@ function AuditoriaPage() {
         } finally {
             setLoading(false);
         }
-    }, [tamanoPagina, query, fechaDesde, fechaHasta, moduloFiltro]); // Dependencias de Recarga
+    }, [tamanoPagina, query, fechaInicio, fechaFin, moduloFiltro]);
+    // Dependencias de Recarga
 
     // --- 5. EFECTO: Patrón de Búsqueda Automática (Live Filter) ---
     // Se ejecuta cuando cambia la página, o cuando cambia cualquiera de los filtros (vía fetchAuditorias).
@@ -74,7 +82,7 @@ function AuditoriaPage() {
     // --- 6. EFECTO: Cuando cambian los filtros, volvemos a la página 1.
     useEffect(() => {
         setPaginaActual(1);
-    }, [query, fechaDesde, fechaHasta, moduloFiltro, tamanoPagina]);
+    }, [query, fechaInicio, fechaFin, moduloFiltro, tamanoPagina]);
 
     // --- 7. MANEJADORES DE ACCIÓN ---
 
@@ -85,19 +93,23 @@ function AuditoriaPage() {
     };
 
     const handleExport = async () => {
-        if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+        if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
             alert("La fecha de inicio no puede ser mayor que la fecha de fin.");
             return;
         }
 
         setLoading(true);
         try {
+            const inicioStr = fechaInicio ? fechaInicio.toISOString().split('T')[0] : null;
+            const finStr = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
             await exportarAuditorias({
                 query,
-                fechaDesde,
-                fechaHasta,
-                moduloFiltro
+                inicioStr,
+                finStr,
+                moduloFiltro,
+
             });
+
             // Aquí puedes mostrar un toast de éxito
         } catch (err) {
             console.error('Error al exportar:', err);
@@ -119,7 +131,7 @@ function AuditoriaPage() {
         }
     };
 
-    // --- 8. RENDERIZADO ---
+    // --- RENDERIZADO ---
     if (error) {
         return (
             <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">
@@ -136,7 +148,6 @@ function AuditoriaPage() {
             <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
 
                 {/* 1. BÚSQUEDA LIBRE */}
-
                 <div className="w-64">
                     <BuscadorDebounce
                         value={query}
@@ -158,35 +169,31 @@ function AuditoriaPage() {
                     ))}
                 </select>
 
-                {/* 3. SELECTOR DE FECHA (ASUMIENDO INPUT TYPE="DATE" POR SIMPLICIDAD) */}
-                <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-700 font-medium whitespace-nowrap">Desde:</label>
-                    <input
-                        type="date"
-                        value={fechaDesde}
-                        onChange={(e) => handleFilterChange(setFechaDesde, e.target.value)}
-                        className="p-2 border border-gray-300 rounded h-[40px] text-sm"
-                        title="Fecha Desde"
-                        disabled={loading}
-                    />
-                </div>
+                {/* 3. SELECTOR DE FECHA */}
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <div className="flex items-center gap-2">
+                        <DatePicker
+                            value={fechaInicio}
+                            onChange={(date) => setFechaInicio(date)}
+                            format="yyyy-MM-dd"
+                            label="Desde"
+                            slotProps={{ textField: { size: "small", className: "w-36" } }}
+                            disabled={loading}
+                        />
+                        <DatePicker
+                            value={fechaFin}
+                            onChange={(date) => setFechaFin(date)}
+                            format="yyyy-MM-dd"
+                            label="Hasta"
+                            slotProps={{ textField: { size: "small", className: "w-36" } }}
+                            disabled={loading}
+                        />
+                    </div>
+                </LocalizationProvider>
 
-                <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-700 font-medium whitespace-nowrap">Hasta:</label>
-                    <input
-                        type="date"
-                        value={fechaHasta}
-                        onChange={(e) => handleFilterChange(setFechaHasta, e.target.value)}
-                        className="p-2 border border-gray-300 rounded h-[40px] text-sm"
-                        title="Fecha Hasta"
-                        disabled={loading}
-                    />
-                </div>
 
                 {/* 4. BOTONES Y SELECTOR DE FILAS */}
                 <div className="flex items-center gap-2 ml-auto">
-
-                    {/* Selector de tamaño de página */}
                     <select
                         value={tamanoPagina}
                         onChange={(e) => handleFilterChange(setTamanoPagina, Number(e.target.value))}
@@ -200,12 +207,10 @@ function AuditoriaPage() {
 
                     <button
                         onClick={() => {
-                            // Limpia todos los estados, lo que dispara la nueva búsqueda (sin filtros)
                             setQuery('');
-                            setFechaDesde('');
-                            setFechaHasta('');
+                            setFechaInicio('');
+                            setFechaFin('');
                             setModuloFiltro('');
-                            // setPaginaActual(1) se maneja en el useEffect
                         }}
                         className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300 h-[40px] whitespace-nowrap"
                         disabled={loading}
@@ -224,6 +229,7 @@ function AuditoriaPage() {
                 </div>
             </div>
 
+
             {/* TABLA DE DATOS */}
             <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
                 {loading ? (
@@ -232,24 +238,28 @@ function AuditoriaPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulo</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Origen</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Equipo Origen</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
+
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {auditorias.map((a) => (
                                 <tr key={a.idAuditoria} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{a.idAuditoria}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(a.fecha).toLocaleString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.usuarioLogin || 'Sistema'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.modulo}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.accion}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.ipOrigen}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.equipoOrigen}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={a.detalle}>
                                         {a.detalle}
+
                                     </td>
                                 </tr>
                             ))}

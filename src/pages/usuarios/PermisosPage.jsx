@@ -71,14 +71,12 @@ const PermisosPage = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {permisos.map((perm) => (
                             <tr key={perm.idPermiso}>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{perm.idPermiso}</td>
                                 <td className="px-6 py-4 text-sm text-gray-500">{perm.descripcion}</td>
                             </tr>
                         ))}
