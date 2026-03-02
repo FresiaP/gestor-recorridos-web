@@ -2201,27 +2201,16 @@ export const createConsumoMensual = async (data) => {
     }
 };
 
-export const updateConsumoMensual = async (id, data) => {
-    try {
-        const response = await api.put(`/ConsumoMensual/${id}`, data);
-        return response.data;
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al actualizar consumo mensual.'));
-    }
-};
-
 export const deleteConsumoMensual = (id) => api.delete(`/ConsumoMensual/${id}`).then(res => res.data);
 
 
-export const generarConsolidado = async (idDispositivo, fechaLectura) => {
-    try {
-        const response = await api.post('/ConsumoMensual/generar-consolidado', null, {
-            params: { idDispositivo, fechaLectura }
-        });
-        return response.data;
-    } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al generar consolidado.'));
-    }
+export const generarConsolidado = async (idDispositivo) => {
+
+    const response = await api.post('/ConsumoMensual/generar-consolidado',
+        null,
+        { params: { idDispositivo } }
+    );
+    return response.data;
 };
 
 // ==============================================================================

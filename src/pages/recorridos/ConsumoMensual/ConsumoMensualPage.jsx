@@ -1,4 +1,4 @@
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { TrashIcon } from '@heroicons/react/24/outline';
 import { Autocomplete, TextField } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -30,7 +30,7 @@ const ConsumoMensualPage = () => {
     const [totalPaginas, setTotalPaginas] = useState(1);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [consumoEditando, setConsumoEditando] = useState(null);
+
 
     // Cargar opciones según criterio
     useEffect(() => {
@@ -111,14 +111,9 @@ const ConsumoMensualPage = () => {
 
 
     const handleCreate = () => {
-        setConsumoEditando(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (consumo) => {
-        setConsumoEditando(consumo);
-        setIsModalOpen(true);
-    };
 
     const handleDelete = async (id, nombreIdentificador) => {
         if (!window.confirm(`¿Eliminar consolidado de "${nombreIdentificador}"?`)) return;
@@ -133,7 +128,6 @@ const ConsumoMensualPage = () => {
 
     const handleCloseModal = (actualizado = false) => {
         setIsModalOpen(false);
-        setConsumoEditando(null);
         if (actualizado) fetchConsumosMensuales(paginaActual);
     };
 
@@ -307,9 +301,6 @@ const ConsumoMensualPage = () => {
 
                                     {/* Acciones */}
                                     <td className="px-4 py-2 text-right flex gap-2 justify-end">
-                                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900">
-                                            <PencilIcon className="h-5 w-5" />
-                                        </button>
                                         <button onClick={() => handleDelete(c.idConsumoMensual, c.nombreIdentificador)} className="text-red-600 hover:text-red-900">
                                             <TrashIcon className="h-5 w-5" />
                                         </button>
@@ -368,7 +359,6 @@ const ConsumoMensualPage = () => {
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 flex justify-center items-center backdrop-blur-sm">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
                         <ConsumoMensualForm
-                            consumoMensual={consumoEditando}
                             onClose={handleCloseModal}
                         />
                     </div>
