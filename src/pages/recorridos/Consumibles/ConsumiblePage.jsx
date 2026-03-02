@@ -321,24 +321,33 @@ const ConsumiblePage = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Impresora</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Técnico</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Fecha Lectura</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Amarillo</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Magenta</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Cian</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Negro</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Residuos</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Alim.</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Mantto.</th>
-                                <th className="sticky top-0 bg-white-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase z-10">Acciones</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Impresora</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Ip</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Serie</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Modelo</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Sitio</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Ubicación</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Fecha Lectura</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Amarillo</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Magenta</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Cian</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Negro</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Residuos</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Alim.</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">K. Mantto.</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Técnico</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase z-10">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {consumibles.map((c) => (
                                 <tr key={c.idConsumible}>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.nombreIdentificador}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.ip}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.serie}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.descripcionModelo}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.descripcionSitio}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.descripcionUbicacion}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">
                                         {c.fechaLectura
                                             ? new Date(c.fechaLectura).toLocaleString("es-NI", {
@@ -358,6 +367,7 @@ const ConsumiblePage = () => {
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.contenedorResiduos}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.kitAlimentador}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.kitMantenimiento}</td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
                                         <button
                                             onClick={() => handleEdit(c)}

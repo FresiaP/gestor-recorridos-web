@@ -235,7 +235,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
                                 safeParseInt(form.idDispositivo),
                                 safeParseInt(form.idUsuario)
                             );
-                            setMensajeExito(`Consumo guardado automáticamente con ID ${creado.idConsumo}`);
+                            setMensajeExito(`Consumo guardado automáticamente con ID ${creado.nombreIdentificador}`);
                             setTimeout(() => onClose(true), 1500);
                         } catch (err) {
                             setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");

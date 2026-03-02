@@ -113,8 +113,6 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
 
-        // La validación de cartuchos de color se relaja para permitir el envío de "" (vacío) o "0"
-
         setCargando(true);
         setError(null);
         setMensajeExito(null);
@@ -267,7 +265,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                                     safeParseInt(form.idDispositivo),
                                     safeParseInt(form.idUsuario)
                                 );
-                                setMensajeExito(`Consumible guardado automáticamente con ID ${creado.idConsumible}`);
+                                setMensajeExito(`Consumible guardado automáticamente con ID ${creado.nombreIdentificador}`);
                                 setTimeout(() => onClose(true), 1500);
                             } catch (err) {
                                 setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
