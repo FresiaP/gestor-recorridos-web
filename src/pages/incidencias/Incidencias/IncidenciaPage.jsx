@@ -315,7 +315,7 @@ const IncidenciaPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 {cargando ? (
                     <div className="p-12 text-center text-gray-500">Cargando datos...</div>
                 ) : (
@@ -323,13 +323,13 @@ const IncidenciaPage = () => {
                         <thead className="bg-gray-50">
                             <tr>
 
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Activo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha Notificación</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resuelto</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Activo</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Categoria</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Técnico</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Fecha Notificación</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Detalle</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Resuelto</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase z-10">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">

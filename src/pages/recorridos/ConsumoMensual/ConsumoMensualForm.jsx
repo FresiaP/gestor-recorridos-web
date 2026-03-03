@@ -14,7 +14,6 @@ const ConsumoMensualForm = ({ onClose }) => {
     const [error, setError] = useState(null);
 
     const handleGenerarConsolidado = async () => {
-
         if (!idDispositivo) {
             setError("Debe seleccionar un dispositivo.");
             return;
@@ -29,12 +28,15 @@ const ConsumoMensualForm = ({ onClose }) => {
 
             setMensajeExito("Consolidado generado correctamente.");
 
+            // 👇 limpiar selección de dispositivo para permitir elegir otro
+            setIdDispositivo("");
+
+            // borrar mensaje de éxito después de 1.5s
             setTimeout(() => {
-                onClose(true);
+                setMensajeExito(null);
             }, 1500);
 
         } catch (err) {
-
             console.log("DATA ERROR:", err);
 
             let errorMessage = "Error al generar el consolidado.";
@@ -61,10 +63,10 @@ const ConsumoMensualForm = ({ onClose }) => {
 
     return (
         <div className="p-4">
-
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
                 Generar Consolidado Mensual
             </h2>
+
             {mensajeExito && (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 animate-pulse">
                     {mensajeExito}
@@ -115,11 +117,11 @@ const ConsumoMensualForm = ({ onClose }) => {
                     type="button"
                     onClick={() => onClose(false)}
                     className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded"
+                    disabled={cargando}
                 >
-                    Cancelar
+                    Cerrar
                 </button>
             </div>
-
         </div>
     );
 };

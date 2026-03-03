@@ -346,11 +346,18 @@ const ActivoPage = () => {
 
             {/* Modal del formulario predicción */}
             {isPrediccionOpen && activoSeleccionado && (
-                <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 flex justify-center items-center">
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
                     <div
                         key={activoSeleccionado?.idActivo}
-                        className="bg-white p-4 rounded-lg shadow-2xl max-w-3xl w-full"
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto relative p-6"
                     >
+                        <button
+                            onClick={handleCerrar}
+                            className="sticky top-0 ml-auto block bg-gray-100 hover:bg-gray-200 rounded-full p-2 z-50"
+                        >
+                            ✕
+                        </button>
+
                         <h2 className="text-xl font-bold mb-4">
                             Predicciones del activo {activoSeleccionado?.nombreIdentificador}
                         </h2>
@@ -534,11 +541,6 @@ const ActivoPage = () => {
                             </div>
 
                         </div>
-
-                        <button onClick={handleCerrar}>
-                            Cerrar
-                        </button>
-
 
                     </div>
                 </div>

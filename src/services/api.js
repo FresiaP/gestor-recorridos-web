@@ -39,34 +39,81 @@ api.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
+// =======================================================================
+// INTERCEPTOR DE REQUEST (verifica expiración antes de enviar)
+// =======================================================================
+const isTokenExpired = (token) => {
+    try {
+        const { exp } = jwtDecode(token);
+        return Date.now() >= exp * 1000;
+    } catch {
+        return true;
+    }
+};
+
+api.interceptors.request.use(async (config) => {
+    let token = getToken();
+
+    // Si hay token y está vencido, intentamos refrescar antes de enviar
+    if (token && isTokenExpired(token)) {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+            try {
+                const res = await api.post('/auth/refresh', { refreshToken });
+                const { token: newToken, refreshToken: newRefreshToken } = res.data;
+                guardarToken(newToken, newRefreshToken);
+                token = newToken;
+            } catch (error) {
+                console.error("Error al refrescar token en request:", error);
+                eliminarToken();
+                window.location.href = '/login';
+            }
+        }
+    }
+
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+}, error => Promise.reject(error));
+
+
 // ======================================================================= 
-// INTERCEPTOR DE RESPUESTAS PARA REFRESH TOKEN 
+// INTERCEPTOR DE RESPUESTAS (maneja 401 y reintenta con refresh token)
 // ======================================================================= 
 api.interceptors.response.use(
     response => response,
     async error => {
         const originalRequest = error.config;
+
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             const refreshToken = getRefreshToken();
+
             if (refreshToken) {
                 try {
-                    // enviar objeto JSON con refreshToken
                     const res = await api.post('/auth/refresh', { refreshToken }, {
                         headers: { 'Content-Type': 'application/json' }
                     });
+
                     const { token, refreshToken: newRefreshToken } = res.data;
                     guardarToken(token, newRefreshToken);
+
+                    // Usamos el NUEVO access token en el header
                     originalRequest.headers['Authorization'] = `Bearer ${token}`;
+
                     return api(originalRequest);
                 } catch (refreshError) {
+                    console.error("Error al refrescar token en response:", refreshError);
                     eliminarToken();
-                    window.location.href = '/login'; // redirigir al login si falla 
+                    window.location.href = '/login';
                 }
             }
         }
+
         return Promise.reject(error);
-    });
+    }
+);
+
+
 
 // =======================================================================
 // FUNCIÓN CENTRAL DE EXTRACCIÓN DE ERRORES
@@ -118,7 +165,7 @@ export const login = async (login, password) => {
 };
 
 export const getUsuarioActual = () => {
-    // CORREGIDO: leer desde sessionStorage (consistente con guardarToken)
+    // leer desde sessionStorage (consistente con guardarToken)
     const token = sessionStorage.getItem("token");
     if (!token) return null;
 

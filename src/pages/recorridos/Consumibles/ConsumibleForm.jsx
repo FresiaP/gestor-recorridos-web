@@ -109,7 +109,6 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // VALIDACIÓN DE CAMPOS REQUERIDOS MÍNIMOS
         if (!form.idDispositivo) return setError("Debe seleccionar un dispositivo.");
         if (!form.idUsuario) return setError("Debe seleccionar un usuario.");
 
@@ -117,7 +116,6 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         setError(null);
         setMensajeExito(null);
 
-        // PAYLOAD: Usamos la función safeParseInt para los campos numéricos opcionales.
         const payload = {
             idDispositivo: safeParseInt(form.idDispositivo),
             idUsuario: safeParseInt(form.idUsuario),
@@ -127,7 +125,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
             cartuchoNegro: safeParseInt(form.cartuchoNegro),
             contenedorResiduos: safeParseInt(form.contenedorResiduos),
             kitAlimentador: safeParseInt(form.kitAlimentador),
-            kitMantenimiento: safeParseInt(form.kitMantenimiento)// ContenedorResiduos SIEMPRE debe ser un número (o 0).
+            kitMantenimiento: safeParseInt(form.kitMantenimiento)
         };
 
         try {
@@ -137,13 +135,31 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 await createConsumible(payload);
             }
 
+            // Mostrar mensaje de éxito
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
-            setTimeout(() => onClose(true), 1500);
+
+            // LIMPIAR SOLO EL DISPOSITIVO
+            setForm(prev => ({
+                ...prev,
+                idDispositivo: '',
+                cartuchoAmarillo: '0',
+                cartuchoMagenta: '0',
+                cartuchoCian: '0',
+                cartuchoNegro: '0',
+                contenedorResiduos: '0',
+                kitAlimentador: '0',
+                kitMantenimiento: '0',
+                ip: ''
+            }));
+
+            // Después de 1.5s borramos el mensaje para habilitar nuevamente el botón
+            setTimeout(() => setMensajeExito(null), 1500);
+
         } catch (err) {
             const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumibles.';
             setError(errorMessage);
         } finally {
-            setCargando(false);
+            setCargando(false); // Botón de guardar vuelve a habilitarse
         }
     };
 
@@ -229,10 +245,20 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         isClearable
                     />
 
-                    {/* Botón Extraer */}
+                    {/* Botón Extraer desde impresora */}
                     <button
                         type="button"
                         onClick={async () => {
+                            if (!form.idDispositivo) {
+                                setError("Debe seleccionar un dispositivo antes de extraer.");
+                                return;
+                            }
+                            if (!form.idUsuario) {
+                                setError("Debe seleccionar un usuario antes de extraer.");
+                                return;
+                            }
+                            setError(null);
+                            setCargando(true);
                             try {
                                 const data = await extraerConsumible(form.ip);
                                 setForm(prev => ({
@@ -247,10 +273,12 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                                 }));
                             } catch (err) {
                                 setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                            } finally {
+                                setCargando(false);
                             }
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded mb-3"
-                        disabled={!form.idDispositivo || !form.idUsuario}
+                        disabled={cargando}
                     >
                         Extraer desde impresora
                     </button>
@@ -259,20 +287,47 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                     <button
                         type="button"
                         onClick={async () => {
+                            if (!form.idDispositivo) {
+                                setError("Debe seleccionar un dispositivo antes de extraer y guardar.");
+                                return;
+                            }
+                            if (!form.idUsuario) {
+                                setError("Debe seleccionar un usuario antes de extraer y guardar.");
+                                return;
+                            }
+                            setError(null);
+                            setCargando(true);
                             try {
                                 const creado = await extraerYGuardarConsumible(
                                     form.ip,
                                     safeParseInt(form.idDispositivo),
                                     safeParseInt(form.idUsuario)
                                 );
-                                setMensajeExito(`Consumible guardado automáticamente con ID ${creado.nombreIdentificador}`);
-                                setTimeout(() => onClose(true), 1500);
+
+                                setMensajeExito(`Consumible guardado automáticamente para ${creado.nombreIdentificador}`);
+
+                                setForm(prev => ({
+                                    ...prev,
+                                    idDispositivo: '',
+                                    cartuchoAmarillo: '0',
+                                    cartuchoMagenta: '0',
+                                    cartuchoCian: '0',
+                                    cartuchoNegro: '0',
+                                    contenedorResiduos: '0',
+                                    kitAlimentador: '0',
+                                    kitMantenimiento: '0',
+                                    ip: ''
+                                }));
+
+                                setTimeout(() => setMensajeExito(null), 1500);
                             } catch (err) {
                                 setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                            } finally {
+                                setCargando(false);
                             }
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                        disabled={!form.idDispositivo || !form.idUsuario}
+                        disabled={cargando}
                     >
                         Extraer y Guardar
                     </button>
@@ -388,7 +443,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                     className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-2 rounded transition duration-150"
                     disabled={cargando}
                 >
-                    Cancelar
+                    Cerrar
                 </button>
             </div>
         </form>

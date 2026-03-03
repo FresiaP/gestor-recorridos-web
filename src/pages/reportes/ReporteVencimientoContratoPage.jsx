@@ -6,10 +6,12 @@ import {
 } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     buscarContratosSelect,
     buscarProveedoresSelect,
+    eliminarToken,
     exportarVencimientoContratos,
     getVencimientoContratos
 } from '../../services/api';
@@ -30,89 +32,69 @@ const ReporteVencimientoPage = () => {
     const [contratoSeleccionado, setContratoSeleccionado] = useState(null);
     const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
 
-    // 1. CARGA DE MAESTROS
-    useEffect(() => {
-        const cargarMaestros = async () => {
-            try {
-                const [resC, resP] = await Promise.all([
-                    buscarContratosSelect('', 1, 100),
-                    buscarProveedoresSelect('', 1, 100)
-                ]);
-                setContratos(Array.isArray(resC) ? resC : (resC?.data || []));
-                setProveedores(Array.isArray(resP) ? resP : (resP?.data || []));
-            } catch (err) {
-                console.error("Error cargando maestros:", err);
-                setError("No se pudieron cargar los filtros de proveedores / Contratos.");
-            }
-        };
-        cargarMaestros();
-    }, []);
+    const navigate = useNavigate();
 
-    // 2. FUNCIÓN DE BÚSQUEDA
+    // FUNCIÓN DE BÚSQUEDA (ahora manual con botón)
     const fetchReporte = useCallback(async () => {
         if (!fechaInicio || !fechaFin) return;
+        if (fechaInicio > fechaFin) {
+            setError("La fecha inicial no puede ser mayor que la fecha final.");
+            return;
+        }
 
         setCargando(true);
         setError(null);
         try {
             const params = {
-                FechaDesde: fechaInicio
-                    ? fechaInicio.toISOString().split("T")[0]
-                    : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0],
-                FechaHasta: fechaFin
-                    ? fechaFin.toISOString().split("T")[0]
-                    : new Date().toISOString().split("T")[0],
+                FechaDesde: fechaInicio.toISOString().split("T")[0],
+                FechaHasta: fechaFin.toISOString().split("T")[0],
                 ContratoId: contratoSeleccionado ? Number(contratoSeleccionado.value) : null,
                 ProveedorId: proveedorSeleccionado ? Number(proveedorSeleccionado.value) : null,
                 Estado: null
             };
 
-
-            console.log("Body enviado:", params); // debug
+            console.log("Body enviado:", params);
             const resultado = await getVencimientoContratos(params);
-            console.log("Respuesta:", resultado); // debug
+            console.log("Respuesta:", resultado);
 
             setReporteData(Array.isArray(resultado) ? resultado : (resultado?.data || []));
         } catch (err) {
-            setError("Error al obtener reporte de vencimiento.");
+            if (err.message.includes("401")) {
+                setError("Tu sesión ha expirado. Por favor inicia sesión nuevamente.");
+                eliminarToken();
+                navigate("/login");
+            } else {
+                setError("Error al obtener reporte de vencimiento.");
+            }
         } finally {
             setCargando(false);
         }
-    }, [fechaInicio, fechaFin, contratoSeleccionado, proveedorSeleccionado]);
+    }, [fechaInicio, fechaFin, contratoSeleccionado, proveedorSeleccionado, navigate]);
 
-    useEffect(() => {
-        fetchReporte();
-    }, [fetchReporte]);
-
-    // 3. MANEJADORES
     const handleExport = async () => {
         try {
             const params = {
-                FechaDesde: fechaInicio
-                    ? fechaInicio.toISOString().split("T")[0]
-                    : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0],
-                FechaHasta: fechaFin
-                    ? fechaFin.toISOString().split("T")[0]
-                    : new Date().toISOString().split("T")[0],
+                FechaDesde: fechaInicio.toISOString().split("T")[0],
+                FechaHasta: fechaFin.toISOString().split("T")[0],
                 ContratoId: contratoSeleccionado ? Number(contratoSeleccionado.value) : null,
                 ProveedorId: proveedorSeleccionado ? Number(proveedorSeleccionado.value) : null,
                 Estado: null
             };
-
-
             await exportarVencimientoContratos(params);
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
     };
 
-
     const handleLimpiar = () => {
         setContratoSeleccionado(null);
         setProveedorSeleccionado(null);
         setFechaInicio(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
         setFechaFin(new Date());
+        setReporteData([]);
+        setError(null);
     };
+
 
     // --- RENDER ---
     return (
@@ -170,16 +152,34 @@ const ReporteVencimientoPage = () => {
                             onChange={(date) => setFechaFin(date)}
                             slotProps={{ textField: { size: "small", className: "w-36" } }}
                         />
+
+                        <button
+                            onClick={fetchReporte}
+                            disabled={cargando}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center shadow disabled:opacity-50 transition"
+                        >
+                            Buscar
+                        </button>
+
                     </div>
                 </LocalizationProvider>
                 <div className="flex gap-2 ml-auto">
-                    <button onClick={handleLimpiar} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition">
+                    <button
+                        onClick={handleLimpiar}
+                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition"
+                    >
                         Limpiar
                     </button>
-                    <button onClick={handleExport} disabled={cargando || reporteData.length === 0} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center shadow disabled:opacity-50 transition">
+
+                    <button
+                        onClick={handleExport}
+                        disabled={cargando || reporteData.length === 0}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center shadow disabled:opacity-50 transition"
+                    >
                         <span className="mr-1">Excel</span>
                     </button>
                 </div>
+
             </div>
 
             {/* Error */}
@@ -190,18 +190,18 @@ const ReporteVencimientoPage = () => {
             )}
 
             {/* Tabla */}
-            <div className="bg-white shadow-md overflow-x-auto rounded-lg border border-gray-200">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-blue-900 text-white">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Contrato</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Proveedor</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Fecha Inicio</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Fecha Fin</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">Días Restantes</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Estado</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Monto</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Contrato</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Proveedor</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Fecha Inicio</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Fecha Fin</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-right text-xs font-semibold uppercase z-10">Días Restantes</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Estado</th>
+                                <th className="sticky top-0 bg-blue-900 px-4 py-3 text-left text-xs font-semibold uppercase z-10">Monto</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -221,7 +221,14 @@ const ReporteVencimientoPage = () => {
                                         <td className="px-4 py-3 text-sm text-gray-600">{row.proveedorNombre}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{new Date(row.fechaInicio).toLocaleDateString()}</td>
                                         <td className="px-4 py-3 text-sm text-gray-600">{new Date(row.fechaFin).toLocaleDateString()}</td>
-                                        <td className="px-4 py-3 text-sm text-right font-mono text-gray-700">{row.diasRestantes}</td>
+                                        <td className={`px-4 py-3 text-sm text-right font-mono ${row.diasRestantes < 0
+                                            ? "text-red-700 bg-red-100"         // vencido
+                                            : row.diasRestantes <= 7
+                                                ? "text-yellow-800 bg-yellow-100" // próximo a vencer
+                                                : "text-green-700"               // lejano a vencer, fondo neutro
+                                            } rounded-md`}>
+                                            {row.diasRestantes}
+                                        </td>
                                         <td className={`px-4 py-3 text-sm font-bold ${row.nombreEstado === "Activo" ? "text-green-700" : "text-red-600"}`}>{row.nombreEstado}</td>
                                         <td className="px-4 py-3 text-sm text-gray-700">{row.montoContrato?.toLocaleString("es-NI", { style: "currency", currency: "NIO" })}</td>
                                     </tr>

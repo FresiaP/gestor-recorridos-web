@@ -12,12 +12,17 @@ export const AuthProvider = ({ children }) => {
     const [cargando, setCargando] = useState(true);
     const navigate = useNavigate();
 
+    //Carga inicial de usuario
     useEffect(() => {
         const token = sessionStorage.getItem("token");
         if (token) {
             const user = getUsuarioActual();
-            console.log("Usuario inicial cargado:", user);
-            setUsuario(user);
+            if (user) {
+                setUsuario(user);
+            } else {
+                eliminarToken();
+                setUsuario(null);
+            }
         } else {
             console.log("No hay token en sessionStorage");
             setUsuario(null);
@@ -25,6 +30,7 @@ export const AuthProvider = ({ children }) => {
         setCargando(false);
     }, []);
 
+    // Login
     const login = async (loginUser, password) => {
         try {
             setCargando(true);
@@ -33,9 +39,16 @@ export const AuthProvider = ({ children }) => {
             const user = getUsuarioActual();
             console.log("Usuario después de login:", user);
 
-            setUsuario(user);
-            navigate("/home"); // redirige al dashboard
-            return true;
+            if (user) {
+                setUsuario(user);
+                navigate("/home"); // redirige al dashboard
+                return true;
+            } else {
+                // Si el token es inválido o no trae roles válidos
+                eliminarToken();
+                setUsuario(null);
+                throw new Error("Token inválido o sin roles");
+            }
         } catch (error) {
             setUsuario(null);
             eliminarToken();
@@ -44,6 +57,7 @@ export const AuthProvider = ({ children }) => {
             setCargando(false);
         }
     };
+
 
     const logout = () => {
         eliminarToken();

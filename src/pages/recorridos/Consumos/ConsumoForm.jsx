@@ -115,7 +115,20 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 await createConsumo(payload);
             }
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
-            setTimeout(() => onClose(true), 1500);
+            // LIMPIAR SOLO EL DISPOSITIVO
+            setForm(prev => ({
+                ...prev,
+                idDispositivo: '',
+                copiaColor: '0',
+                impresionColor: '0',
+                copiaBw: '0',
+                impresionBw: '0',
+                ip: ''
+            }));
+
+            // Después de 1.5s borramos el mensaje para habilitar nuevamente el botón
+            setTimeout(() => setMensajeExito(null), 1500);
+
         } catch (err) {
             const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de consumo.';
             setError(errorMessage);
@@ -128,7 +141,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
     // Renderizado
     //=============================================================================================
     return (
-        <form onSubmit={handleSubmit} className="p-2">
+        <form onSubmit={handleSubmit} noValidate className="p-2">
             <h2 className="text-2xl font-bold mb-2 text-gray-800 border-b pb-2">
                 {isEditing ? 'Editar Consumo' : 'Crear Nuevo Registro de Consumo'}
             </h2>
@@ -205,6 +218,18 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 <button
                     type="button"
                     onClick={async () => {
+
+                        if (!form.idDispositivo) {
+                            setError("Debe seleccionar un dispositivo antes de extraer.");
+                            return;
+                        }
+                        if (!form.idUsuario) {
+                            setError("Debe seleccionar un usuario antes de extraer.");
+                            return;
+                        }
+                        setError(null);
+                        setCargando(true);
+
                         try {
                             const data = await extraerConsumos(form.ip);
                             setForm(prev => ({
@@ -215,8 +240,10 @@ const ConsumoForm = ({ consumo, onClose }) => {
                                 impresionBw: parseValue(data.impresionesMonocromo)
                             }));
                         } catch (err) {
-                            // El middleware ya devuelve { error, statusCode }
+
                             setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                        } finally {
+                            setCargando(false);
                         }
                     }}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded"
@@ -226,26 +253,56 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 </button>
 
                 {/* Botón Extraer y Guardar */}
+                {/* Botón Extraer y Guardar */}
                 <button
                     type="button"
                     onClick={async () => {
+                        if (!form.idDispositivo) {
+                            setError("Debe seleccionar un dispositivo antes de extraer y guardar.");
+                            return;
+                        }
+                        if (!form.idUsuario) {
+                            setError("Debe seleccionar un usuario antes de extraer y guardar.");
+                            return;
+                        }
+
+                        setError(null); // limpiar error previo
+                        setCargando(true);
                         try {
                             const creado = await extraerYGuardar(
                                 form.ip,
                                 safeParseInt(form.idDispositivo),
                                 safeParseInt(form.idUsuario)
                             );
+
                             setMensajeExito(`Consumo guardado automáticamente con ID ${creado.nombreIdentificador}`);
-                            setTimeout(() => onClose(true), 1500);
+
+                            // limpiar solo el dispositivo y sus campos
+                            setForm(prev => ({
+                                ...prev,
+                                idDispositivo: '',
+                                copiaColor: '0',
+                                impresionColor: '0',
+                                copiaBw: '0',
+                                impresionBw: '0',
+                                ip: ''
+                            }));
+
+                            // borrar mensaje de éxito después de 1.5s
+                            setTimeout(() => setMensajeExito(null), 1500);
+
                         } catch (err) {
                             setError(err.response?.data?.error || "No se pudo establecer conexión con el recurso solicitado.");
+                        } finally {
+                            setCargando(false);
                         }
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                    disabled={!form.idDispositivo || !form.idUsuario}
+                    disabled={!form.idDispositivo || !form.idUsuario || cargando}
                 >
                     Extraer y Guardar
                 </button>
+
             </div>
 
             {/* Inputs de fecha y contadores */}
@@ -309,7 +366,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
                     className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition duration-150"
                     disabled={cargando}
                 >
-                    Cancelar
+                    Cerrar
                 </button>
             </div>
         </form>
