@@ -64,7 +64,31 @@ const ParametroPage = () => {
             // Conversión de fechas para la API
             const fechaInicioParam = fechaInicio ? fechaInicio.toISOString().split('T')[0] : null;
             const fechaFinParam = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
-            const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
+            let terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
+            // Si el filtro principal es por ubicacion, preferimos usar el idUbicacion
+            if (criterioBusqueda === 'ubicacion') terminoBusqueda = '';
+            let idUbicacionParam = null;
+            let idUsuarioParam = null;
+            if (criterioBusqueda === 'ubicacion' && elementoSeleccionado) {
+                const raw = elementoSeleccionado.value ?? elementoSeleccionado.id ?? null;
+                const parsed = raw != null ? parseInt(raw, 10) : NaN;
+                idUbicacionParam = Number.isInteger(parsed) ? parsed : null;
+            }
+            if (criterioBusqueda === 'usuario' && elementoSeleccionado) {
+                const raw = elementoSeleccionado.value ?? elementoSeleccionado.id ?? null;
+                const parsed = raw != null ? parseInt(raw, 10) : NaN;
+                idUsuarioParam = Number.isInteger(parsed) ? parsed : null;
+            }
+
+            console.debug('[Debug] fetchParametro params', {
+                page,
+                tamanoPagina,
+                terminoBusqueda,
+                fechaInicioParam,
+                fechaFinParam,
+                idUbicacionParam,
+                idUsuarioParam
+            });
 
             const data = await getParametroAmbientePaginados(
                 page,
@@ -72,6 +96,8 @@ const ParametroPage = () => {
                 terminoBusqueda,
                 fechaInicioParam,
                 fechaFinParam,
+                idUbicacionParam,
+                idUsuarioParam
             );
 
             console.log("Datos recibidos:", data.datos);
@@ -83,7 +109,7 @@ const ParametroPage = () => {
         } finally {
             setCargando(false);
         }
-    }, [tamanoPagina, elementoSeleccionado, fechaInicio, fechaFin]);
+    }, [tamanoPagina, elementoSeleccionado, fechaInicio, fechaFin, criterioBusqueda]);
 
     // 3. EFECTO: Patrón de Búsqueda Automática (Live Filter)
     // Se ejecuta cuando cambia la página, o cuando cambia cualquiera de los filtros 
@@ -107,8 +133,25 @@ const ParametroPage = () => {
         }
 
         try {
+            let selectedTerm = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "";
+            if (criterioBusqueda === 'ubicacion') selectedTerm = "";
+            let idUbicacionParam = null;
+            let idUsuarioParam = null;
+            if (criterioBusqueda === 'ubicacion' && elementoSeleccionado) {
+                const raw = elementoSeleccionado.value ?? elementoSeleccionado.id ?? null;
+                const parsed = raw != null ? parseInt(raw, 10) : NaN;
+                idUbicacionParam = Number.isInteger(parsed) ? parsed : null;
+            }
+            if (criterioBusqueda === 'usuario' && elementoSeleccionado) {
+                const raw = elementoSeleccionado.value ?? elementoSeleccionado.id ?? null;
+                const parsed = raw != null ? parseInt(raw, 10) : NaN;
+                idUsuarioParam = Number.isInteger(parsed) ? parsed : null;
+            }
+
             await exportarParametroAmbiente({
-                query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
+                query: selectedTerm,
+                idUbicacion: idUbicacionParam,
+                idUsuario: idUsuarioParam,
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
                 fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
             });

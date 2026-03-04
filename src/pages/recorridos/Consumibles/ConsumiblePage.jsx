@@ -108,8 +108,14 @@ const ConsumiblePage = () => {
         }
 
         try {
+            const selectedTerm = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "";
+            const idDispositivoParam = criterioBusqueda === 'dispositivo' && elementoSeleccionado ? (elementoSeleccionado.value ?? elementoSeleccionado.id ?? null) : null;
+            const idUsuarioParam = criterioBusqueda === 'usuario' && elementoSeleccionado ? (elementoSeleccionado.value ?? elementoSeleccionado.id ?? null) : null;
+
             await exportarConsumibles({
-                query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
+                query: selectedTerm,
+                idDispositivo: idDispositivoParam,
+                idUsuario: idUsuarioParam,
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
                 fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
             });

@@ -1,5 +1,5 @@
 // src/pages/recorridos/Consumibles/ConsumibleForm.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AsyncSelect from 'react-select/async';
 import {
     buscarUbicacionesSelect,
@@ -26,6 +26,7 @@ const ParametroForm = ({ parametro, onClose }) => {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
+    const successTimeoutRef = useRef(null);
     const isEditing = !!parametro;
 
     // Carga de datos si estamos editando
@@ -109,7 +110,23 @@ const ParametroForm = ({ parametro, onClose }) => {
             }
 
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
-            setTimeout(() => onClose(true), 1500);
+
+            // Si fue creación exitosa (no edición), limpiamos el formulario
+            if (!isEditing) {
+                const preservedUsuario = form.idUsuario; // no limpiar el usuario seleccionado
+                setForm({
+                    idUbicacion: '',
+                    idUsuario: preservedUsuario,
+                    fechaRecorrido: '',
+                    temperatura: '',
+                    humedad: '',
+                    comentarios: ''
+                });
+                // Mantener las opciones cargadas pero quitar la selección visual
+            }
+            // Ocultar mensaje de éxito automáticamente tras 3s
+            if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+            successTimeoutRef.current = setTimeout(() => setMensajeExito(null), 3000);
         } catch (err) {
             const errorMessage = err.response?.data?.error || err.message || 'Error al guardar el registro de parámetro.';
             setError(errorMessage);
@@ -117,6 +134,14 @@ const ParametroForm = ({ parametro, onClose }) => {
             setCargando(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (successTimeoutRef.current) {
+                clearTimeout(successTimeoutRef.current);
+            }
+        };
+    }, []);
 
 
     //=============================================================================================
@@ -224,7 +249,7 @@ const ParametroForm = ({ parametro, onClose }) => {
                     name="temperatura"
                     value={form.temperatura}
                     onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
+                    disabled={cargando}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
@@ -236,7 +261,7 @@ const ParametroForm = ({ parametro, onClose }) => {
                     name="humedad"
                     value={form.humedad}
                     onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
+                    disabled={cargando}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
@@ -248,7 +273,7 @@ const ParametroForm = ({ parametro, onClose }) => {
                     name="comentarios"
                     value={form.comentarios}
                     onChange={handleChange}
-                    disabled={cargando || !!mensajeExito}
+                    disabled={cargando}
                     className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
                 />
 
@@ -259,7 +284,7 @@ const ParametroForm = ({ parametro, onClose }) => {
                 <button
                     type="submit"
                     className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 transition duration-150"
-                    disabled={cargando || !!mensajeExito}
+                    disabled={cargando}
                 >
                     {cargando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Guardar')}
                 </button>

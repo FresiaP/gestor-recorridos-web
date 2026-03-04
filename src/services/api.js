@@ -2269,6 +2269,8 @@ export const getParametroAmbientePaginados = async (
     query = '',
     fechaInicio = '',
     fechaFin = '',
+    idUbicacion = null,
+    idUsuario = null
 
 ) => {
     try {
@@ -2293,8 +2295,12 @@ export const getParametroAmbientePaginados = async (
         if (fechaFin && isValidDate(fechaFin)) {
             params.append('fechaFin', fechaFin);       // Enviando al backend
         }
+        // Filtros por ids maestros
+        if (idUbicacion && idUbicacion > 0) params.append('idUbicacion', idUbicacion);
+        if (idUsuario && idUsuario > 0) params.append('idUsuario', idUsuario);
 
         const url = `/ParametroAmbiente?${params.toString()}`;
+        console.debug('[Debug] getParametroAmbientePaginados url', url);
         const response = await api.get(url);
         return response.data;
     } catch (error) {
