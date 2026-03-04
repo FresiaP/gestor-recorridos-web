@@ -39,7 +39,6 @@ const AsignacionesPermisosPage = () => {
   };
 
 
-
   const handleDelete = async (idUsuarioPermiso, nombre) => {
     // NOTA: Esta función ELIMINA UNA SOLA ASIGNACIÓN (una fila de la tabla).
     if (!window.confirm(`¿Eliminar la asignación de permiso de "${nombre}"?`)) return;

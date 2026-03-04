@@ -82,7 +82,6 @@ const UsuarioPage = () => {
 
 
 
-    if (cargando) return <div className="p-12 text-gray-500">Cargando usuarios...</div>;
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
@@ -106,8 +105,7 @@ const UsuarioPage = () => {
                 <div className="flex items-center space-x-4">
                     <BuscadorDebounce
                         value={searchTerm}
-                        onDebouncedChange={(val) => setSearchTerm(val)}
-                        disabled={cargando}
+                        onDebouncedChange={setSearchTerm}
                         placeholder="Buscar por Nombre, login..."
                     />
                     <select
@@ -145,72 +143,81 @@ const UsuarioPage = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-4">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres y Apellidos</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Login</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Nombres y Apellidos</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Login</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Estado</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-200">
-                        {usuarios.map((usuario) => (
-                            <tr key={usuario.idUsuario}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.nombreApellido}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.login}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {usuario.estado ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </td>
-
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-
-                                    {/* EDITAR */}
-                                    <button onClick={() => handleEdit(usuario)} className="text-indigo-600 hover:text-indigo-900 relative group"
-                                    >
-                                        <PencilIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Editar
-                                        </span>
-                                    </button>
-
-                                    {/* ACTIVAR/ DESACTIVAR */}
-                                    <button onClick={() => handleToggleEstado(usuario)}
-                                        className={`relative group ${usuario.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-
-                                            }`}
-                                    >
-                                        {usuario.estado ? (
-                                            <XCircleIcon className="h-5 w-5" />
-                                        ) : (
-                                            <CheckCircleIcon className="h-5 w-5" />
-                                        )}
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            {usuario.estado ? 'Desactivar' : 'Activar'}
-                                        </span>
-                                    </button>
-
-                                    {/* ELIMINAR */}
-                                    <button onClick={() => handleDelete(usuario.idUsuario, usuario.nombreApellido)} className="text-red-600 hover:text-red-900 relative group"
-                                    >
-                                        <TrashIcon className="h-5 w-5" />
-                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 
-                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
-                                            Eliminar
-                                        </span>
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {usuarios.length === 0 && !cargando && (
+                        {cargando ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">No se encontraron usuarios.</td>
+                                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                                    Cargando...
+                                </td>
                             </tr>
+                        ) : usuarios.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                                    No se encontraron usuarios.
+                                </td>
+                            </tr>
+                        ) : (
+                            usuarios.map((usuario) => (
+                                <tr key={usuario.idUsuario}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.nombreApellido}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.login}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${usuario.estado ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {usuario.estado ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </td>
+
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+                                        {/* EDITAR */}
+                                        <button onClick={() => handleEdit(usuario)} className="text-indigo-600 hover:text-indigo-900 relative group"
+                                        >
+                                            <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
+                                        </button>
+
+                                        {/* ACTIVAR/ DESACTIVAR */}
+                                        <button onClick={() => handleToggleEstado(usuario)}
+                                            className={`relative group ${usuario.estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+
+                                                }`}
+                                        >
+                                            {usuario.estado ? (
+                                                <XCircleIcon className="h-5 w-5" />
+                                            ) : (
+                                                <CheckCircleIcon className="h-5 w-5" />
+                                            )}
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                         bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                {usuario.estado ? 'Desactivar' : 'Activar'}
+                                            </span>
+                                        </button>
+
+                                        {/* ELIMINAR */}
+                                        <button onClick={() => handleDelete(usuario.idUsuario, usuario.nombreApellido)} className="text-red-600 hover:text-red-900 relative group"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                               bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>

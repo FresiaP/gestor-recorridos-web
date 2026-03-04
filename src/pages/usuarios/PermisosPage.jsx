@@ -27,7 +27,6 @@ const PermisosPage = () => {
     });
 
     // --- Renderizado Condicional ---
-    if (cargando) return <div className="p-12 text-gray-500">Cargando permisos...</div>;
     if (error) return <div className="p-6 text-red-600 border border-red-300 bg-red-50 rounded">Error: {error}</div>;
 
     return (
@@ -38,8 +37,7 @@ const PermisosPage = () => {
                 <div className="flex items-center space-x-4">
                     <BuscadorDebounce
                         value={searchTerm}
-                        onDebouncedChange={(val) => setSearchTerm(val)}
-                        disabled={cargando}
+                        onDebouncedChange={setSearchTerm}
                         placeholder="Buscar por nombre de permiso..."
                     />
 
@@ -67,25 +65,32 @@ const PermisosPage = () => {
             </div>
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                            <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Descripción</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {permisos.map((perm) => (
-                            <tr key={perm.idPermiso}>
-                                <td className="px-6 py-4 text-sm text-gray-500">{perm.descripcion}</td>
-                            </tr>
-                        ))}
-                        {permisos.length === 0 && !cargando && (
+                        {cargando ? (
                             <tr>
-                                <td colSpan="3" className="px-6 py-4 text-center text-gray-500">
-                                    No se encontraron permisos.
+                                <td colSpan="4" className="px-6 py-6 text-center text-gray-500">
+                                    Cargando...
                                 </td>
                             </tr>
+                        ) : permisos.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                                    No se encontraron permisos
+                                </td>
+                            </tr>
+                        ) : (
+                            permisos.map((perm) => (
+                                <tr key={perm.idPermiso}>
+                                    <td className="px-6 py-4 text-sm text-gray-500">{perm.descripcion}</td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>
