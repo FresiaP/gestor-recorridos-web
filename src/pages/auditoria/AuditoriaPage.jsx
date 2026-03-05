@@ -231,20 +231,20 @@ function AuditoriaPage() {
 
 
             {/* TABLA DE DATOS */}
-            <div className="bg-white shadow overflow-x-auto sm:rounded-lg mt-6">
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 {loading ? (
                     <div className="p-12 text-center text-gray-500">Cargando datos...</div>
                 ) : (
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Origen</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Equipo Origen</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Fecha</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Usuario</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Módulo</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Acción</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">IP Origen</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Equipo Origen</th>
+                                <th className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase z-10">Detalle</th>
 
                             </tr>
                         </thead>
