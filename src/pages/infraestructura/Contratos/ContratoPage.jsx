@@ -32,31 +32,32 @@ const ContratosPage = () => {
         setCargando(true);
         setError(null);
         try {
-            const fechaInicioParam =
-                tipoBusquedaFecha === 'inicio' ? fechaInicio?.toISOString().split('T')[0] : null;
-            const fechaFinParam =
-                tipoBusquedaFecha === 'inicio' ? fechaFin?.toISOString().split('T')[0] : null;
-            const fechaInicioFinParam =
-                tipoBusquedaFecha === 'fin' ? fechaInicio?.toISOString().split('T')[0] : null;
-            const fechaFinFinParam =
-                tipoBusquedaFecha === 'fin' ? fechaFin?.toISOString().split('T')[0] : null;
+            let fechaInicioParam = null;
+            let fechaFinParam = null;
+
+            if (tipoBusquedaFecha !== "texto") {
+                fechaInicioParam = fechaInicio ? fechaInicio.toISOString().split("T")[0] : null;
+                fechaFinParam = fechaFin ? fechaFin.toISOString().split("T")[0] : null;
+            }
 
             const data = await getContratosPaginadas(
                 page,
                 tamanoPagina,
-                searchTerm || '',
-                tipoBusquedaFecha === 'inicio' ? fechaInicioParam : fechaInicioFinParam,
-                tipoBusquedaFecha === 'inicio' ? fechaFinParam : fechaFinFinParam
+                tipoBusquedaFecha === "texto" ? searchTerm?.trim() || "" : "",
+                fechaInicioParam,
+                fechaFinParam,
+                tipoBusquedaFecha
             );
 
             setContratos(Array.isArray(data.datos) ? data.datos : []);
             setTotalPaginas(data.totalPaginas || 1);
         } catch (err) {
-            setError(err.message || 'Fallo al cargar los contratos paginados.');
+            setError(err.message || "Fallo al cargar los contratos paginados.");
         } finally {
             setCargando(false);
         }
     }, [tamanoPagina, searchTerm, fechaInicio, fechaFin, tipoBusquedaFecha]);
+
 
     useEffect(() => {
         setPaginaActual(1);
@@ -94,20 +95,15 @@ const ContratosPage = () => {
         try {
             await exportarContratos({
                 query: tipoBusquedaFecha === "texto" ? searchTerm?.trim() || "" : "",
-                fechaInicio:
-                    tipoBusquedaFecha !== "texto"
-                        ? fechaInicio?.toISOString().split("T")[0]
-                        : null,
-                fechaFin:
-                    tipoBusquedaFecha !== "texto"
-                        ? fechaFin?.toISOString().split("T")[0]
-                        : null,
+                fechaInicio: tipoBusquedaFecha !== "texto" ? fechaInicio?.toISOString().split("T")[0] : null,
+                fechaFin: tipoBusquedaFecha !== "texto" ? fechaFin?.toISOString().split("T")[0] : null,
                 tipoBusquedaFecha,
             });
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
     };
+
 
     const handleCreate = () => {
         setContratoEditando(null);

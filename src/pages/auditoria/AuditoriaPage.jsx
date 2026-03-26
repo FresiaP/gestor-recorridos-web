@@ -100,15 +100,14 @@ function AuditoriaPage() {
 
         setLoading(true);
         try {
-            const inicioStr = fechaInicio ? fechaInicio.toISOString().split('T')[0] : null;
-            const finStr = fechaFin ? fechaFin.toISOString().split('T')[0] : null;
-            await exportarAuditorias({
+            const filtros = {
                 query,
-                inicioStr,
-                finStr,
-                moduloFiltro,
+                fechaInicio: fechaInicio ? fechaInicio.toISOString().split('T')[0] : null,
+                fechaFin: fechaFin ? fechaFin.toISOString().split('T')[0] : null,
+                moduloFiltro
+            };
 
-            });
+            await exportarAuditorias(filtros);
 
             // Aquí puedes mostrar un toast de éxito
         } catch (err) {
@@ -118,6 +117,7 @@ function AuditoriaPage() {
             setLoading(false);
         }
     };
+
 
     const handleNextPage = () => {
         if (paginaActual < totalPaginas) {

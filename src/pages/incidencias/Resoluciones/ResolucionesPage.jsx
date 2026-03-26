@@ -127,7 +127,9 @@ const ResolucionPage = () => {
             await exportarResoluciones({
                 query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
-                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
+                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null,
+                idActivo: criterioBusqueda === "activo" && elementoSeleccionado ? elementoSeleccionado.id : null,
+                idUsuario: criterioBusqueda === "usuario" && elementoSeleccionado ? elementoSeleccionado.id : null
             });
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);

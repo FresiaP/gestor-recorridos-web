@@ -106,17 +106,21 @@ const IncidenciaPage = () => {
         }
 
         try {
-            await exportarIncidencias(
-                elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
-                fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
-                fechaFin ? fechaFin.toISOString().split("T")[0] : null,
-                "rango",
-                resueltas
-            );
+            const filtros = {
+                query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
+                fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
+                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null,
+                idActivo: criterioBusqueda === "activo" && elementoSeleccionado ? elementoSeleccionado.id : null,
+                idUsuario: criterioBusqueda === "usuario" && elementoSeleccionado ? elementoSeleccionado.id : null,
+                resueltas: resueltas
+            };
+
+            await exportarIncidencias(filtros);
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
     };
+
 
     // Funciones CRUD
     const handleCreate = () => {

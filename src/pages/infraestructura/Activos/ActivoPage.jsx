@@ -194,6 +194,7 @@ const ActivoPage = () => {
                                 { title: 'Sitio', key: 'descripcionSitio' },
                                 { title: 'Propiedad Legal', key: 'nombrePropiedadLegal' },
                                 { title: 'Estado', key: 'estado' }
+
                             ].map(({ title, key }) => (
                                 <th key={key} className="sticky top-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
                                     <div className="flex items-center space-x-1">
@@ -369,9 +370,12 @@ const ActivoPage = () => {
                                 // Mostrar resultado calculado en un panel temporal
                                 setResultadoTemporal(resultado);
                             }}
-                            onPrediccionGuardada={(nueva) => {
-                                setPredicciones([nueva, ...predicciones]);
+                            onPrediccionGuardada={async () => {
+
+                                const data = await getPrediccionesPorActivo(activoSeleccionado.idActivo);
+                                setPredicciones(data);
                                 setResultadoTemporal(null);
+
                             }}
 
                         />
@@ -501,6 +505,8 @@ const ActivoPage = () => {
                                     </tbody>
                                 </table>
                             </div>
+
+
 
                             {/* Gráfico de evolución de probabilidades */}
                             <div className="mt-4">

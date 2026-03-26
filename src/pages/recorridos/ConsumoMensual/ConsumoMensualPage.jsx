@@ -2,41 +2,51 @@ import { TrashIcon } from '@heroicons/react/24/outline';
 import { Autocomplete, TextField } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { useCallback, useEffect, useState } from 'react';
+import BuscadorDebounce from '../../../components/ui/BuscadorDebounce';
 import {
     buscarDispositivosSelect,
     buscarSitiosSelect,
     deleteConsumoMensual,
     exportarConsumosMensuales,
-    getConsumosMensualesPaginados
+    getConsumosMensualesPaginados,
+    obtenerReporteConsumosMensuales
 } from '../../../services/api';
 import ConsumoMensualForm from './ConsumoMensualForm';
+
+const formatDate = (date) =>
+    date instanceof Date && !isNaN(date)
+        ? date.toISOString().split("T")[0]
+        : null;
 
 const ConsumoMensualPage = () => {
     const [consumosMensuales, setConsumosMensuales] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- ESTADOS PARA FILTROS ---
+
     const [criterioBusqueda, setCriterioBusqueda] = useState("dispositivo");
     const [opcionesBusqueda, setOpcionesBusqueda] = useState([]);
-    const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
-
-    const [fechaInicio, setFechaInicio] = useState(null);
-    const [fechaFin, setFechaFin] = useState(null);
+    const [filtros, setFiltros] = useState({
+        query: '',
+        fechaInicio: null,
+        fechaFin: null,
+        idDispositivo: null,
+        idSitio: null
+    });
 
     const [paginaActual, setPaginaActual] = useState(1);
     const [tamanoPagina, setTamanoPagina] = useState(10);
     const [totalPaginas, setTotalPaginas] = useState(1);
-
+    const [selectedOption, setSelectedOption] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
 
     // Cargar opciones según criterio
     useEffect(() => {
         const cargarOpciones = async () => {
             setOpcionesBusqueda([]);
-            setElementoSeleccionado(null);
             try {
                 let data = [];
                 if (criterioBusqueda === "dispositivo") {
@@ -55,65 +65,118 @@ const ConsumoMensualPage = () => {
 
     const fetchConsumosMensuales = useCallback(async (page) => {
         setCargando(true);
-        setError(null);
         try {
-            const fechaInicioParam = fechaInicio ? fechaInicio.toISOString().split('T')[0] : '';
-            const fechaFinParam = fechaFin ? fechaFin.toISOString().split('T')[0] : '';
-            const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : '';
+            const data = await getConsumosMensualesPaginados({
+                pagina: page,
+                tamano: tamanoPagina,
+                query: filtros.query,
+                fechaInicio: formatDate(filtros.fechaInicio),
+                fechaFin: formatDate(filtros.fechaFin),
+                idDispositivo: filtros.idDispositivo || undefined,
+                idSitio: filtros.idSitio || undefined
+            });
 
-
-            const data = await getConsumosMensualesPaginados(
-                Number(page),
-                tamanoPagina,
-                terminoBusqueda,
-                fechaInicioParam,
-                fechaFinParam,
-                '',
-                'asc'
-            );
-
-            setConsumosMensuales(Array.isArray(data.datos) ? data.datos : []);
+            setConsumosMensuales(data.datos || []);
             setTotalPaginas(data.totalPaginas || 1);
         } catch (err) {
-            setError(err.message || 'Fallo al cargar los consumos mensuales.');
+            setError(err.message);
         } finally {
             setCargando(false);
         }
-    }, [tamanoPagina, elementoSeleccionado, fechaInicio, fechaFin]);
-
-
+    }, [tamanoPagina, filtros]);
 
     useEffect(() => {
         fetchConsumosMensuales(paginaActual);
     }, [paginaActual, fetchConsumosMensuales]);
 
-    useEffect(() => {
-        setPaginaActual(1);
-    }, [elementoSeleccionado, fechaInicio, fechaFin, tamanoPagina]);
-
+    // Exportar a Excel
     const handleExport = async () => {
         try {
-            const fechaInicioParam = fechaInicio ? fechaInicio.toISOString().split("T")[0] : "";
-            const fechaFinParam = fechaFin ? fechaFin.toISOString().split("T")[0] : "";
-            const terminoBusqueda = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "";
-
             await exportarConsumosMensuales({
-                query: terminoBusqueda,
-                sortColumn: "",
-                sortDirection: "asc",
-                fechaInicio: fechaInicioParam,
-                fechaFin: fechaFinParam
+                query: filtros.query,
+                fechaInicio: filtros.fechaInicio,
+                fechaFin: filtros.fechaFin,
+                idDispositivo: filtros.idDispositivo,
+                idSitio: filtros.idSitio
             });
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
     };
 
+    // Exportar a PDF
+    const exportarPDF = (reporte) => {
+        const doc = new jsPDF("landscape");
 
-    const handleCreate = () => {
-        setIsModalOpen(true);
+        const fechaInicio = reporte.fechaCorteAnterior
+            ? new Date(reporte.fechaCorteAnterior).toLocaleDateString()
+            : "Inicio";
+
+        const fechaFin = reporte.fechaCorteActual
+            ? new Date(reporte.fechaCorteActual).toLocaleDateString()
+            : "Actual";
+
+        // Título
+        doc.setFontSize(16);
+        doc.text(`Consumos Mensuales del ${fechaInicio} al ${fechaFin}`, 14, 15);
+
+        // Encabezados
+        const columnas = [
+            "Impresora", "Serie", "Modelo", "Ubicación", "Sitio", "Fecha Corte",
+            "Inicial B/N", "Final B/N", "Total B/N",
+            "Inicial Color", "Final Color", "Total Color"
+        ];
+
+        const filas = reporte.registros.map(item => [
+            item.nombreIdentificador,
+            item.serie,
+            item.descripcionModelo,
+            item.descripcionUbicacion,
+            item.descripcionSitio,
+            item.fechaCorte?.slice(0, 10),
+            item.contadorInicialMono,
+            item.contadorFinalMono,
+            item.totalMono,
+            item.contadorInicialColor,
+            item.contadorFinalColor,
+            item.totalColor
+        ]);
+
+        // Totales como fila extra (tfoot)
+        filas.push([
+            { content: "TOTAL GENERAL:", colSpan: 6, styles: { halign: "left", fontStyle: "bold" } },
+            "", "",
+            { content: reporte.totalMono.toLocaleString(), styles: { halign: "left", fontStyle: "bold", textColor: [30, 64, 175] } },
+            "", "",
+            { content: reporte.totalColor.toLocaleString(), styles: { halign: "left", fontStyle: "bold", textColor: [22, 163, 74] } }
+        ]);
+
+        autoTable(doc, {
+            startY: 25,
+            head: [columnas],
+            body: filas,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] }
+        });
+
+        doc.save("consumos_mensuales.pdf");
     };
 
+    const handleExportPDF = async () => {
+        try {
+
+            const reporte = await obtenerReporteConsumosMensuales(filtros);
+
+            exportarPDF(reporte);
+
+        } catch (err) {
+
+            alert(`Error generando reporte PDF: ${err.message}`);
+
+        }
+    };
+
+    const handleCreate = () => setIsModalOpen(true);
 
     const handleDelete = async (id, nombreIdentificador) => {
         if (!window.confirm(`¿Eliminar consolidado de "${nombreIdentificador}"?`)) return;
@@ -132,16 +195,13 @@ const ConsumoMensualPage = () => {
     };
 
     const handleNextPage = () => {
-        if (paginaActual < totalPaginas) {
-            setPaginaActual(prev => prev + 1);
-        }
+        if (paginaActual < totalPaginas) setPaginaActual(prev => prev + 1);
     };
 
     const handlePrevPage = () => {
-        if (paginaActual > 1) {
-            setPaginaActual(prev => prev - 1);
-        }
+        if (paginaActual > 1) setPaginaActual(prev => prev - 1);
     };
+
 
     // --- RENDER ---
     if (error) {
@@ -153,10 +213,8 @@ const ConsumoMensualPage = () => {
     }
 
     return (
-        <div className="p-12 border-b border-gray-200 bg-white sticky top-0 z-10">
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">
-                Gestión de Consumos Mensuales
-            </h1>
+        <div className="p-12">
+            <h1 className="text-3xl font-bold mb-4 text-gray-800">Gestión de Consumos Mensuales</h1>
 
             <div className="flex justify-between items-center mb-4">
                 <button
@@ -166,6 +224,29 @@ const ConsumoMensualPage = () => {
                     Generar Consumo del mes
                 </button>
             </div>
+
+            {/* Cuadro de Búsqueda */}
+            <BuscadorDebounce
+                className="w-64"
+                value={filtros.query}
+                onDebouncedChange={(value) => {
+
+                    if (value === filtros.query) return; // 👈 evita rebote
+
+                    setSelectedOption(null);
+
+                    setFiltros(prev => ({
+                        ...prev,
+                        query: value,
+                        idDispositivo: null,
+                        idSitio: null
+                    }));
+
+                    setPaginaActual(1);
+                }}
+                placeholder="Buscar por Sitio, Dispositivo..."
+            />
+
 
             {/* FILTROS */}
             <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -184,35 +265,40 @@ const ConsumoMensualPage = () => {
                 <div className="w-56">
                     <Autocomplete
                         options={opcionesBusqueda}
-                        getOptionLabel={(option) => option.nombre || option.label || ""}
-                        value={elementoSeleccionado}
-                        onChange={(event, newValue) => setElementoSeleccionado(newValue)}
+                        getOptionLabel={(option) => option.label}
+                        value={selectedOption}
+                        onChange={(event, newValue) => {
+
+                            setSelectedOption(newValue);
+
+                            setFiltros(prev => ({
+                                ...prev,
+                                query: '', // 👈 limpia texto SIEMPRE
+                                idDispositivo: criterioBusqueda === "dispositivo" && newValue ? newValue.value : null,
+                                idSitio: criterioBusqueda === "sitio" && newValue ? newValue.value : null
+                            }));
+
+                            setPaginaActual(1); // 👈 importante
+                        }}
                         renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label={`Seleccionar ${criterioBusqueda === 'dispositivo' ? 'Dispositivo' : 'Sitio'}`}
-                                variant="outlined"
-                                size="small"
-                                placeholder={`Escribe para buscar ${criterioBusqueda}...`}
-                            />
+                            <TextField {...params} label={`Buscar por ${criterioBusqueda}`} />
                         )}
-                        noOptionsText="No se encontraron registros"
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        disabled={cargando}
                     />
+
+
                 </div>
 
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <div className="flex items-center gap-2">
                         <DatePicker
-                            value={fechaInicio}
-                            onChange={(date) => setFechaInicio(date)}
+                            value={filtros.fechaInicio}
+                            onChange={(date) => setFiltros(prev => ({ ...prev, fechaInicio: date }))}
                             label="Desde"
                             slotProps={{ textField: { size: "small", className: "w-36" } }}
                         />
                         <DatePicker
-                            value={fechaFin}
-                            onChange={(date) => setFechaFin(date)}
+                            value={filtros.fechaFin}
+                            onChange={(date) => setFiltros(prev => ({ ...prev, fechaFin: date }))}
                             label="Hasta"
                             slotProps={{ textField: { size: "small", className: "w-36" } }}
                         />
@@ -221,16 +307,20 @@ const ConsumoMensualPage = () => {
 
                 <div className="flex items-center gap-2 ml-auto">
                     <button
-                        onClick={() => {
-                            setElementoSeleccionado(null);
-                            setFechaInicio(null);
-                            setFechaFin(null);
-                        }}
+                        onClick={() => setFiltros({ query: '', fechaInicio: null, fechaFin: null, idDispositivo: null, idSitio: null })}
                         className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300 h-[40px] whitespace-nowrap"
                     >
                         Limpiar
                     </button>
+                    {/* Exportar a PDF */}
+                    <button
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700"
+                        onClick={handleExportPDF}
+                    >
+                        Exportar PDF
+                    </button>
 
+                    {/* Exportar a Excel */}
                     <button
                         onClick={handleExport}
                         disabled={cargando}
@@ -252,7 +342,7 @@ const ConsumoMensualPage = () => {
                 </div>
             </div>
 
-            {/* TABLA DE DATOS*/}
+            {/* TABLA DE DATOS */}
             <div className="bg-white shadow overflow-hidden sm:rounded-lg mt-6 overflow-x-auto max-h-[70vh] overflow-y-auto">
                 {cargando ? (
                     <div className="p-12 text-center text-gray-500">Cargando datos...</div>
@@ -260,15 +350,15 @@ const ConsumoMensualPage = () => {
                     <table className="min-w-full table-auto text-sm text-left">
                         <thead className="bg-blue-800 text-white">
                             <tr>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border z-10">Impresora</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border">Serie</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border">Modelo</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border">Ubicación</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border">Sitio</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border">Fecha Corte</th>
-                                <th colSpan="3" className="sticky top-0 bg-gray-700 px-4 py-2 border text-center z-10">Consumo B/N</th>
-                                <th colSpan="3" className="sticky top-0 bg-blue-700 px-4 py-2 border text-center">Consumo Color</th>
-                                <th rowSpan="2" className="sticky top-0 bg-blue-800 px-4 py-2 border text-center">Acciones</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border z-10">Impresora</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border">Serie</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border">Modelo</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border">Ubicación</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border">Sitio</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border">Fecha Corte</th>
+                                <th colSpan={3} className="sticky top-0 bg-gray-700 px-4 py-2 border text-center z-10">Consumo B/N</th>
+                                <th colSpan={3} className="sticky top-0 bg-blue-700 px-4 py-2 border text-center">Consumo Color</th>
+                                <th rowSpan={2} className="sticky top-0 bg-blue-800 px-4 py-2 border text-center">Acciones</th>
                             </tr>
                             <tr className="bg-gray-100 text-gray-800">
                                 <th className="sticky top-[2.3rem] bg-gray-100 px-2 py-1 border z-10">Inicial</th>
@@ -288,18 +378,12 @@ const ConsumoMensualPage = () => {
                                     <td className="px-4 py-2">{c.descripcionUbicacion}</td>
                                     <td className="px-4 py-2">{c.descripcionSitio}</td>
                                     <td className="px-4 py-2">{c.fechaCorte?.slice(0, 10)}</td>
-
-                                    {/* Datos B/N */}
                                     <td className="px-4 py-2 text-right">{c.contadorInicialMono}</td>
                                     <td className="px-4 py-2 text-right">{c.contadorFinalMono}</td>
                                     <td className="px-4 py-2 text-right font-bold text-blue-700">{c.totalMono}</td>
-
-                                    {/* Datos Color */}
                                     <td className="px-4 py-2 text-right">{c.contadorInicialColor}</td>
                                     <td className="px-4 py-2 text-right">{c.contadorFinalColor}</td>
                                     <td className="px-4 py-2 text-right font-bold text-green-700">{c.totalColor}</td>
-
-                                    {/* Acciones */}
                                     <td className="px-4 py-2 text-right flex gap-2 justify-end">
                                         <button onClick={() => handleDelete(c.idConsumoMensual, c.nombreIdentificador)} className="text-red-600 hover:text-red-900">
                                             <TrashIcon className="h-5 w-5" />
@@ -309,7 +393,7 @@ const ConsumoMensualPage = () => {
                             ))}
                             {consumosMensuales.length === 0 && (
                                 <tr>
-                                    <td colSpan="13" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan={13} className="px-6 py-4 text-center text-gray-500">
                                         No se encontraron consumos mensuales.
                                     </td>
                                 </tr>
@@ -317,12 +401,12 @@ const ConsumoMensualPage = () => {
                         </tbody>
                         <tfoot className="bg-gray-200 font-bold">
                             <tr>
-                                <td colSpan="6" className="px-4 py-2 text-right text-lg">TOTAL GENERAL:</td>
-                                <td colSpan="2"></td>
+                                <td colSpan={6} className="px-4 py-2 text-right text-lg">TOTAL GENERAL:</td>
+                                <td colSpan={2}></td>
                                 <td className="px-4 py-2 text-right text-blue-800 text-lg">
                                     {consumosMensuales.reduce((acc, curr) => acc + (curr.totalMono ?? 0), 0).toLocaleString()}
                                 </td>
-                                <td colSpan="2"></td>
+                                <td colSpan={2}></td>
                                 <td className="px-4 py-2 text-right text-green-800 text-lg">
                                     {consumosMensuales.reduce((acc, curr) => acc + (curr.totalColor ?? 0), 0).toLocaleString()}
                                 </td>
@@ -358,9 +442,7 @@ const ConsumoMensualPage = () => {
             {isModalOpen && (
                 <div className="fixed inset-0 z-40 bg-gray-900 bg-opacity-75 flex justify-center items-center backdrop-blur-sm">
                     <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full">
-                        <ConsumoMensualForm
-                            onClose={handleCloseModal}
-                        />
+                        <ConsumoMensualForm onClose={handleCloseModal} />
                     </div>
                 </div>
             )}

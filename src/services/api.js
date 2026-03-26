@@ -2,20 +2,38 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// URL base de tu backend C#
-const BASE_URL = 'http://localhost:5010/api';
+// URL base de tu backend C# en desarrollo
+//const BASE_URL = 'http://10.70.56.217:5010/api';
+
+// URL base usando nginx en producción (se ajusta según la configuración de nginx)
+// const BASE_URL = '/api';
+
+const BASE_URL = process.env.REACT_APP_API_URL || '/api';
+
+// ==============================
+// CONTROL DE REFRESH TOKEN (ANTI MULTI-REFRESH)
+// ==============================
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) {
+    refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token) {
+    refreshSubscribers.forEach(cb => cb(token));
+    refreshSubscribers = [];
+}
 
 // =======================================================================
 // UTILERÍAS DE TOKEN
 // =======================================================================
-const getToken = () => sessionStorage.getItem('token');
-const getRefreshToken = () => sessionStorage.getItem('refreshToken');
+export const getToken = () => sessionStorage.getItem('token');
+export const getRefreshToken = () => sessionStorage.getItem('refreshToken');
 
 export const guardarToken = (token, refreshToken) => {
     sessionStorage.setItem('token', token.replace(/"/g, ''));
     sessionStorage.setItem('refreshToken', refreshToken.replace(/"/g, ''));
-
-
 };
 
 export const eliminarToken = () => {
@@ -26,7 +44,7 @@ export const eliminarToken = () => {
 // =======================================================================
 // CONFIGURACIÓN AXIOS
 // =======================================================================
-const api = axios.create({
+export const api = axios.create({
     baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
 });
@@ -35,77 +53,62 @@ api.interceptors.request.use(config => {
     const token = getToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
+    // Enviar nombre del equipo
+    config.headers["X-Client-Host"] = window.location.hostname;
 
     return config;
 }, error => Promise.reject(error));
 
+
 // =======================================================================
-// INTERCEPTOR DE REQUEST (verifica expiración antes de enviar)
-// =======================================================================
-const isTokenExpired = (token) => {
-    try {
-        const { exp } = jwtDecode(token);
-        return Date.now() >= exp * 1000;
-    } catch {
-        return true;
-    }
-};
-
-api.interceptors.request.use(async (config) => {
-    let token = getToken();
-
-    // Si hay token y está vencido, intentamos refrescar antes de enviar
-    if (token && isTokenExpired(token)) {
-        const refreshToken = getRefreshToken();
-        if (refreshToken) {
-            try {
-                const res = await api.post('/auth/refresh', { refreshToken });
-                const { token: newToken, refreshToken: newRefreshToken } = res.data;
-                guardarToken(newToken, newRefreshToken);
-                token = newToken;
-            } catch (error) {
-                console.error("Error al refrescar token en request:", error);
-                eliminarToken();
-                window.location.href = '/login';
-            }
-        }
-    }
-
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-}, error => Promise.reject(error));
-
-
-// ======================================================================= 
 // INTERCEPTOR DE RESPUESTAS (maneja 401 y reintenta con refresh token)
-// ======================================================================= 
+// =======================================================================
 api.interceptors.response.use(
     response => response,
     async error => {
         const originalRequest = error.config;
 
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
+
+            if (isRefreshing) {
+                return new Promise(resolve => {
+                    subscribeTokenRefresh(token => {
+                        originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                        resolve(api(originalRequest));
+                    });
+                });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
+
             const refreshToken = getRefreshToken();
 
-            if (refreshToken) {
-                try {
-                    const res = await api.post('/auth/refresh', { refreshToken }, {
-                        headers: { 'Content-Type': 'application/json' }
-                    });
+            try {
+                const res = await api.post('/auth/refresh', { RefreshToken: refreshToken });
 
-                    const { token, refreshToken: newRefreshToken } = res.data;
-                    guardarToken(token, newRefreshToken);
+                const { token, refreshToken: newRefreshToken } = res.data;
 
-                    // Usamos el NUEVO access token en el header
-                    originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                guardarToken(token, newRefreshToken);
+                api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+                originalRequest.headers["Authorization"] = `Bearer ${token}`;
 
-                    return api(originalRequest);
-                } catch (refreshError) {
-                    console.error("Error al refrescar token en response:", refreshError);
-                    eliminarToken();
-                    window.location.href = '/login';
-                }
+                isRefreshing = false;
+
+                onRefreshed(token);
+
+                originalRequest.headers['Authorization'] = `Bearer ${token}`;
+
+                return api(originalRequest);
+
+            } catch (err) {
+
+                isRefreshing = false;
+
+                eliminarToken();
+                window.location.href = '/login';
+
+                return Promise.reject(err);
             }
         }
 
@@ -113,12 +116,10 @@ api.interceptors.response.use(
     }
 );
 
-
-
 // =======================================================================
 // FUNCIÓN CENTRAL DE EXTRACCIÓN DE ERRORES
 // =======================================================================
-const extractErrorMessage = (error, defaultMessage = 'Error de conexión o servidor.') => {
+export const extractErrorMessage = (error, defaultMessage = 'Error de conexión o servidor.') => {
     if (error.response && error.response.data) {
         const data = error.response.data;
 
@@ -136,7 +137,7 @@ const extractErrorMessage = (error, defaultMessage = 'Error de conexión o servi
 };
 
 // ========================================================================
-// FUNCIONES GENÉRICAS 
+// FUNCIONES GENÉRICAS
 // ========================================================================
 export const apiGet = async (endpoint) => {
     try {
@@ -165,15 +166,12 @@ export const login = async (login, password) => {
 };
 
 export const getUsuarioActual = () => {
-    // leer desde sessionStorage (consistente con guardarToken)
-    const token = sessionStorage.getItem("token");
+    const token = getToken();
     if (!token) return null;
 
     const decoded = jwtDecode(token);
 
-    // Extraer roles correctamente
     let roles = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-
     if (!roles) roles = [];
     if (!Array.isArray(roles)) roles = [roles];
 
@@ -184,7 +182,6 @@ export const getUsuarioActual = () => {
         permisos: roles,
     };
 };
-
 
 // ==============================================================================
 // Usuarios CRUD
@@ -1042,7 +1039,12 @@ export const buscarContratosTop = async (query = '') => {
     return datos ?? [];
 };
 
-export const exportarContratos = async ({ query = '', fechaInicio = null, fechaFin = null }) => {
+export const exportarContratos = async ({
+    query = '',
+    fechaInicio = null,
+    fechaFin = null,
+    tipoBusquedaFecha = 'texto'
+}) => {
     try {
         const token = getToken();
         const params = new URLSearchParams();
@@ -1050,6 +1052,9 @@ export const exportarContratos = async ({ query = '', fechaInicio = null, fechaF
         if (query?.trim()) params.append('query', query.trim());
         if (fechaInicio) params.append('fechaInicio', fechaInicio);
         if (fechaFin) params.append('fechaFin', fechaFin);
+
+
+        params.append('tipoBusquedaFecha', tipoBusquedaFecha);
 
         const url = `${BASE_URL}/contratos/exportar?${params.toString()}`;
 
@@ -1074,6 +1079,7 @@ export const exportarContratos = async ({ query = '', fechaInicio = null, fechaF
         throw new Error(extractErrorMessage(error, 'Error al exportar contratos.'));
     }
 };
+
 
 export const getContratos = () => apiGet('/contratos');
 
@@ -1699,7 +1705,8 @@ export const buscarDispositivosSelect = async (inputValue = '', page = 1, size =
     const response = await api.get('/dispositivos/select', { params });
     return response.data.map(c => ({
         value: c.value ?? c.Value,
-        label: c.label ?? c.Label
+        label: c.label ?? c.Label,
+        nombreCategoria: c.nombreCategoria ?? c.NombreCategoria
     }));
 };
 
@@ -1942,23 +1949,23 @@ export const exportarConsumibles = async ({
         const token = getToken();
         const params = new URLSearchParams();
 
-        // Filtros
+        // Filtros de texto
         if (query?.trim()) params.append('query', query.trim());
         if (ordenarPor?.trim()) params.append('ordenarPor', ordenarPor.trim());
 
-        // --- Nuevos Filtros Maestros ---
+        // Filtros por dispositivo/usuario
         if (idDispositivo && idDispositivo > 0) {
             params.append('idDispositivo', idDispositivo);
         }
         if (idUsuario && idUsuario > 0) {
             params.append('idUsuario', idUsuario);
         }
-        // -------------------------------
 
+        // Filtros de fecha (formato yyyy-MM-dd)
         if (fechaInicio) params.append('fechaInicio', fechaInicio);
         if (fechaFin) params.append('fechaFin', fechaFin);
 
-
+        // Construcción de la URL
         const url = `${BASE_URL}/consumible/exportar?${params.toString()}`;
 
         const response = await axios.get(url, {
@@ -1968,7 +1975,7 @@ export const exportarConsumibles = async ({
             },
         });
 
-        // Lógica de descarga...
+        // Lógica de descarga
         const blob = new Blob([response.data], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         });
@@ -1984,6 +1991,8 @@ export const exportarConsumibles = async ({
         throw new Error(extractErrorMessage(error, 'Error al exportar consumibles.'));
     }
 };
+
+
 
 export const getConsumibleById = (id) => apiGet(`/consumible/${id}`);
 
@@ -2080,9 +2089,11 @@ export const exportarConsumo = async ({
     idDispositivo = null,
     idUsuario = null,
     fechaInicio = "",
-    fechaFin = ""
+    fechaFin = "",
+
 } = {}) => {
     try {
+
         const token = getToken();
         const params = new URLSearchParams();
 
@@ -2179,85 +2190,194 @@ export const extraerYGuardar = async (ip, idDispositivo, idUsuario) => {
 // ==============================================================================
 // Consumos Mensuales
 // ==============================================================================
-export const getConsumosMensualesPaginados = async (
+export const getConsumosMensualesPaginados = async ({
     pagina = 1,
     tamano = 10,
     query = '',
-    fechaInicio = '',
-    fechaFin = '',
-    sortColumn = '',
-    sortDirection = 'asc'
-) => {
+    fechaInicio = null,
+    fechaFin = null,
+    idDispositivo = null,
+    idSitio = null
+}) => {
     try {
-        const params = new URLSearchParams();
+        // Función para normalizar fechas
+        const normalizeDate = (date) => {
+            if (!date) return undefined;
+            if (date instanceof Date && !isNaN(date)) {
+                return date.toISOString().split('T')[0]; // convierte Date a yyyy-MM-dd
+            }
+            if (typeof date === "string") {
+                return date; // si ya viene como string yyyy-MM-dd
+            }
+            return undefined;
+        };
 
-        // Paginación
-        params.append('pagina', pagina);
-        params.append('tamano', tamano);
+        const params = {
+            pagina,
+            tamano,
+            query: query || undefined,
+            fechaInicio: normalizeDate(fechaInicio),
+            fechaFin: normalizeDate(fechaFin),
+            idDispositivo: idDispositivo || undefined,
+            idSitio: idSitio || undefined
+        };
 
-        // Filtro de búsqueda
-        if (query?.trim()) params.append('query', query.trim());
+        const response = await api.get('/ConsumoMensual', { params });
 
-        // Filtros de fecha
-        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
-        if (fechaInicio && isValidDate(fechaInicio)) params.append('fechaInicio', fechaInicio);
-        if (fechaFin && isValidDate(fechaFin)) params.append('fechaFin', fechaFin);
-
-        // Ordenamiento opcional
-        if (sortColumn) params.append('sortColumn', sortColumn);
-        if (sortDirection) params.append('sortDirection', sortDirection);
-
-        const url = `/ConsumoMensual?${params.toString()}`;
-        const response = await api.get(url);
         return response.data;
     } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al obtener consumos mensuales paginados.'));
+        throw new Error(
+            extractErrorMessage(
+                error,
+                'Error al obtener consumos mensuales paginados.'
+            )
+        );
     }
 };
+
+// Exportar consumos mensuales con filtros avanzados para excel
 
 export const exportarConsumosMensuales = async ({
     query = "",
     sortColumn = "",
     sortDirection = "asc",
-    fechaInicio = "",
-    fechaFin = ""
+    fechaInicio = null,
+    fechaFin = null,
+    idDispositivo = null,
+    idSitio = null
 } = {}) => {
     try {
+
+        const normalizeDate = (date) => {
+            if (!date) return undefined;
+
+            if (date instanceof Date && !isNaN(date)) {
+                return date.toISOString().split('T')[0];
+            }
+
+            if (typeof date === "string") {
+                return date;
+            }
+
+            return undefined;
+        };
+
         const token = getToken();
         const params = new URLSearchParams();
 
-        // Filtros de búsqueda
-        if (query?.trim()) params.append("query", query.trim());
+        // Filtro de búsqueda
+        if (query?.trim()) {
+            params.append("query", query.trim());
+        }
+
+        // Filtros adicionales
+        if (idDispositivo) {
+            params.append("idDispositivo", idDispositivo);
+        }
+
+        if (idSitio) {
+            params.append("idSitio", idSitio);
+        }
 
         // Ordenamiento
-        if (sortColumn?.trim()) params.append("sortColumn", sortColumn.trim());
-        if (sortDirection?.trim()) params.append("sortDirection", sortDirection.trim());
+        if (sortColumn?.trim()) {
+            params.append("sortColumn", sortColumn.trim());
+            params.append("sortDirection", sortDirection || "asc");
+        }
 
-        // Filtros de fecha (validación formato yyyy-MM-dd)
-        const isValidDate = (val) => /^\d{4}-\d{2}-\d{2}$/.test(val);
-        if (fechaInicio && isValidDate(fechaInicio)) params.append("fechaInicio", fechaInicio);
-        if (fechaFin && isValidDate(fechaFin)) params.append("fechaFin", fechaFin);
+        // Fechas
+        const fInicio = normalizeDate(fechaInicio);
+        const fFin = normalizeDate(fechaFin);
+
+        if (fInicio) {
+            params.append("fechaInicio", fInicio);
+        }
+
+        if (fFin) {
+            params.append("fechaFin", fFin);
+        }
 
         const url = `${BASE_URL}/ConsumoMensual/exportar?${params.toString()}`;
+
         const response = await axios.get(url, {
             responseType: "blob",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
-        // Descargar archivo Excel
         const blob = new Blob([response.data], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         });
 
         const urlBlob = window.URL.createObjectURL(blob);
+
         const link = document.createElement("a");
         link.href = urlBlob;
-        link.setAttribute("download", "ConsumosMensuales_Exportados.xlsx");
+        link.download = "ConsumosMensuales_Exportados.xlsx";
+
         document.body.appendChild(link);
         link.click();
         link.remove();
+
+        // Liberar memoria
+        window.URL.revokeObjectURL(urlBlob);
+
     } catch (error) {
-        throw new Error(extractErrorMessage(error, "Error al exportar consumos mensuales."));
+        throw new Error(
+            extractErrorMessage(
+                error,
+                "Error al exportar consumos mensuales."
+            )
+        );
+    }
+};
+
+// Obtener reporte de consumos mensuales con filtros avanzados para PDF o visualización en pantalla
+export const obtenerReporteConsumosMensuales = async ({
+    query = '',
+    fechaInicio = null,
+    fechaFin = null,
+    idDispositivo = null,
+    idSitio = null
+}) => {
+    try {
+
+        const normalizeDate = (date) => {
+            if (!date) return undefined;
+
+            if (date instanceof Date && !isNaN(date)) {
+                return date.toISOString().split('T')[0];
+            }
+
+            if (typeof date === "string") {
+                return date;
+            }
+
+            return undefined;
+        };
+
+        const params = {
+            query: query || undefined,
+            fechaInicio: normalizeDate(fechaInicio),
+            fechaFin: normalizeDate(fechaFin),
+            idDispositivo: idDispositivo || undefined,
+            idSitio: idSitio || undefined
+        };
+
+        const response = await api.get('/ConsumoMensual/reporte', { params });
+
+        return response.data;
+
+    } catch (error) {
+
+        throw new Error(
+            extractErrorMessage(
+                error,
+                'Error al obtener reporte de consumos mensuales.'
+            )
+        );
+
     }
 };
 
@@ -2471,8 +2591,9 @@ export const buscarIncidenciasSelect = async (inputValue = '', page = 1, size = 
 export const exportarIncidencias = async ({
     query = "",
     ordenarPor = "",
-    idDispositivo = null,
+    idActivo = null,
     idUsuario = null,
+    resueltas = null,
     fechaInicio = "",
     fechaFin = ""
 } = {}) => {
@@ -2480,33 +2601,23 @@ export const exportarIncidencias = async ({
         const token = getToken();
         const params = new URLSearchParams();
 
-        // Filtros
         if (query?.trim()) params.append('query', query.trim());
         if (ordenarPor?.trim()) params.append('ordenarPor', ordenarPor.trim());
 
-        // --- Nuevos Filtros Maestros ---
-        if (idDispositivo && idDispositivo > 0) {
-            params.append('idDispositivo', idDispositivo);
-        }
-        if (idUsuario && idUsuario > 0) {
-            params.append('idUsuario', idUsuario);
-        }
-        // -------------------------------
+        if (idActivo && idActivo > 0) params.append('idActivo', idActivo);
+        if (idUsuario && idUsuario > 0) params.append('idUsuario', idUsuario);
+        if (resueltas !== null) params.append('resueltas', resueltas);
 
         if (fechaInicio) params.append('fechaInicio', fechaInicio);
         if (fechaFin) params.append('fechaFin', fechaFin);
-
 
         const url = `${BASE_URL}/Incidencias/exportar?${params.toString()}`;
 
         const response = await axios.get(url, {
             responseType: 'blob',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Lógica de descarga...
         const blob = new Blob([response.data], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         });
@@ -2514,14 +2625,15 @@ export const exportarIncidencias = async ({
         const urlBlob = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = urlBlob;
-        link.setAttribute('download', 'Incidencias_Exportados.xlsx');
+        link.setAttribute('download', 'Incidencias_Exportadas.xlsx');
         document.body.appendChild(link);
         link.click();
         link.remove();
     } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al exportar Incidencias.'));
+        throw new Error(extractErrorMessage(error, 'Error al exportar incidencias.'));
     }
 };
+
 
 export const getIncidenciaById = (id) => apiGet(`/Incidencias/${id}`);
 
@@ -2553,8 +2665,8 @@ export const getResolucionesPaginadas = async (
     pagina = 1,
     tamano = 10,
     query = '',
-    fechaInicio = '',
-    fechaFin = ''
+    fechaInicio = "",
+    fechaFin = ""
 ) => {
     try {
         const params = new URLSearchParams();
@@ -2589,7 +2701,7 @@ export const getResolucionesPaginadas = async (
 export const exportarResoluciones = async ({
     query = "",
     ordenarPor = "",
-    idDispositivo = null,
+    idActivo = null,
     idUsuario = null,
     fechaInicio = "",
     fechaFin = ""
@@ -2598,24 +2710,24 @@ export const exportarResoluciones = async ({
         const token = getToken();
         const params = new URLSearchParams();
 
-        // Filtros
+        // Filtros de texto
         if (query?.trim()) params.append('query', query.trim());
         if (ordenarPor?.trim()) params.append('ordenarPor', ordenarPor.trim());
 
-        // --- Nuevos Filtros Maestros ---
-        if (idDispositivo && idDispositivo > 0) {
-            params.append('idDispositivo', idDispositivo);
+        // Filtros por dispositivo/usuario
+        if (idActivo && idActivo > 0) {
+            params.append('idActivo', idActivo);
         }
         if (idUsuario && idUsuario > 0) {
             params.append('idUsuario', idUsuario);
         }
-        // -------------------------------
 
+        // Filtros de fecha (formato yyyy-MM-dd)
         if (fechaInicio) params.append('fechaInicio', fechaInicio);
         if (fechaFin) params.append('fechaFin', fechaFin);
 
-
-        const url = `${BASE_URL}/Resolucion/exportar?${params.toString()}`;
+        // Construcción de la URL
+        const url = `${BASE_URL}/resolucion/exportar?${params.toString()}`;
 
         const response = await axios.get(url, {
             responseType: 'blob',
@@ -2624,7 +2736,7 @@ export const exportarResoluciones = async ({
             },
         });
 
-        // Lógica de descarga...
+        // Lógica de descarga
         const blob = new Blob([response.data], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         });
@@ -2637,7 +2749,7 @@ export const exportarResoluciones = async ({
         link.click();
         link.remove();
     } catch (error) {
-        throw new Error(extractErrorMessage(error, 'Error al exportar Resoluciones.'));
+        throw new Error(extractErrorMessage(error, 'Error al exportar resoluciones.'));
     }
 };
 
@@ -2715,8 +2827,7 @@ export const exportarAuditorias = async ({
     query = '',
     fechaInicio = '',
     fechaFin = '',
-    moduloFiltro = '',
-    tipoBusquedaFecha = 'rango'
+    moduloFiltro = ''
 }) => {
     try {
         const params = new URLSearchParams();
@@ -2725,7 +2836,6 @@ export const exportarAuditorias = async ({
         if (moduloFiltro?.trim()) params.append('moduloFiltro', moduloFiltro.trim());
         if (fechaInicio?.trim()) params.append('fechaInicio', fechaInicio.trim());
         if (fechaFin?.trim()) params.append('fechaFin', fechaFin.trim());
-        if (tipoBusquedaFecha?.trim()) params.append('tipoBusquedaFecha', tipoBusquedaFecha.trim());
 
         const url = `/Auditorias/exportar?${params.toString()}`;
 
@@ -2756,6 +2866,7 @@ export const exportarAuditorias = async ({
         throw new Error(extractErrorMessage(error, 'Error al exportar auditorías.'));
     }
 };
+
 
 
 //=====================================================================================================
@@ -2816,7 +2927,14 @@ export const exportarVencimientoContratos = async (filtro) => {
 //==============================================================================
 // DASHBOARD
 //==============================================================================
-export const getDashboard = async () => {
-    const response = await api.get("/dashboard");
+export const getAnios = async () => {
+    const response = await api.get("/dashboard/anios");
     return response.data;
 };
+
+export const getDashboard = async (params) => {
+    const response = await api.get("/dashboard", { params });
+    return response.data;
+};
+
+

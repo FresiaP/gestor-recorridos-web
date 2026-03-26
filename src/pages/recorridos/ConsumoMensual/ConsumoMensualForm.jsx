@@ -88,10 +88,15 @@ const ConsumoMensualForm = ({ onClose }) => {
                 defaultOptions
                 loadOptions={async (inputValue) => {
                     const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                    setOpcionesDispositivo(opciones);
-                    return opciones;
+                    const filtrados = opciones.filter(o =>
+                        o.nombreCategoria &&
+                        o.nombreCategoria.toLowerCase().includes("impresora") &&
+                        !o.nombreCategoria.toLowerCase().includes("consumible") &&
+                        !o.nombreCategoria.toLowerCase().includes("hardware")
+                    );
+                    setOpcionesDispositivo(filtrados);
+                    return filtrados;
                 }}
-                options={opcionesDispositivo}
                 value={
                     opcionesDispositivo.find(o => o.value === parseInt(idDispositivo)) || null
                 }

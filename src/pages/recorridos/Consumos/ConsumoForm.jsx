@@ -115,6 +115,10 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 await createConsumo(payload);
             }
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
+
+            // Notificar al padre que debe refrescar la tabla, pero NO cerrar el modal
+            onClose(false, true); // primer flag: cerrar modal, segundo flag: refrescar tabla
+
             // LIMPIAR SOLO EL DISPOSITIVO
             setForm(prev => ({
                 ...prev,
@@ -158,21 +162,26 @@ const ConsumoForm = ({ consumo, onClose }) => {
             )}
 
             {/* Select Dispositivo */}
-            <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
             <AsyncSelect
                 cacheOptions
                 defaultOptions
                 loadOptions={async (inputValue) => {
                     const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                    setOpcionesDispositivo(opciones);
-                    return opciones;
+
+                    // Solo impresoras, excluyendo consumibles y hardware
+                    const filtrados = opciones.filter(o =>
+                        o.nombreCategoria &&
+                        o.nombreCategoria.toLowerCase().includes("impresora") &&
+                        !o.nombreCategoria.toLowerCase().includes("consumible") &&
+                        !o.nombreCategoria.toLowerCase().includes("hardware")
+                    );
+
+                    setOpcionesDispositivo(filtrados);
+                    return filtrados;
                 }}
-                options={OpcionesDispositivo}
-                value={
-                    form.idDispositivo
-                        ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
-                        : null
-                }
+                value={form.idDispositivo
+                    ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
+                    : null}
                 onChange={async (opcion) => {
                     setForm((prev) => ({ ...prev, idDispositivo: opcion?.value?.toString() ?? '' }));
                     if (opcion) {
@@ -184,10 +193,11 @@ const ConsumoForm = ({ consumo, onClose }) => {
                         }
                     }
                 }}
-                placeholder="Buscar y seleccionar dispositivo..."
+                placeholder="Buscar y seleccionar impresora..."
                 isClearable
                 className="mb-4"
             />
+
 
             {/* Select Usuario */}
             <label className="block text-gray-700 text-sm font-bold mb-2">Técnico Asociado</label>
@@ -253,7 +263,6 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 </button>
 
                 {/* Botón Extraer y Guardar */}
-                {/* Botón Extraer y Guardar */}
                 <button
                     type="button"
                     onClick={async () => {
@@ -276,6 +285,8 @@ const ConsumoForm = ({ consumo, onClose }) => {
                             );
 
                             setMensajeExito(`Consumo guardado automáticamente con ID ${creado.nombreIdentificador}`);
+                            // REFRESCAR TABLA DEL PADRE
+                            onClose(false, true);
 
                             // limpiar solo el dispositivo y sus campos
                             setForm(prev => ({
@@ -362,7 +373,7 @@ const ConsumoForm = ({ consumo, onClose }) => {
                 </button>
                 <button
                     type="button"
-                    onClick={() => onClose(false)}
+                    onClick={() => onClose(true)}
                     className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition duration-150"
                     disabled={cargando}
                 >

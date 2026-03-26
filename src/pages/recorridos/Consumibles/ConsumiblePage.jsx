@@ -108,17 +108,15 @@ const ConsumiblePage = () => {
         }
 
         try {
-            const selectedTerm = elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "";
-            const idDispositivoParam = criterioBusqueda === 'dispositivo' && elementoSeleccionado ? (elementoSeleccionado.value ?? elementoSeleccionado.id ?? null) : null;
-            const idUsuarioParam = criterioBusqueda === 'usuario' && elementoSeleccionado ? (elementoSeleccionado.value ?? elementoSeleccionado.id ?? null) : null;
-
-            await exportarConsumibles({
-                query: selectedTerm,
-                idDispositivo: idDispositivoParam,
-                idUsuario: idUsuarioParam,
+            const filtros = {
+                query: elementoSeleccionado ? (elementoSeleccionado.nombre || elementoSeleccionado.label) : "",
                 fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : null,
-                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null
-            });
+                fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : null,
+                idDispositivo: criterioBusqueda === "dispositivo" && elementoSeleccionado ? elementoSeleccionado.id : null,
+                idUsuario: criterioBusqueda === "usuario" && elementoSeleccionado ? elementoSeleccionado.id : null
+            };
+
+            await exportarConsumibles(filtros);
         } catch (err) {
             alert(`Error de exportación: ${err.message}`);
         }
@@ -135,24 +133,27 @@ const ConsumiblePage = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id, nombre) => {
-        if (!window.confirm(`¿Estás seguro de que quieres eliminar el consumible "${nombre}"?`)) {
+    const handleDelete = async (id, nombreIdentificador) => {
+        if (!window.confirm(`¿Estás seguro de que quieres eliminar el consumible "${nombreIdentificador}"?`)) {
             return;
         }
         try {
             await deleteConsumible(id);
-            alert(`Consumible "${nombre}" eliminado con éxito.`);
+            alert(`Consumible "${nombreIdentificador}" eliminado con éxito.`);
             await fetchConsumible(paginaActual);
         } catch (err) {
             alert(`Error al eliminar: ${err.message}`);
         }
     };
 
-    const handleCloseModal = (consumibleActualizado = false) => {
-        setIsModalOpen(false);
-        setConsumibleEditando(null);
+    const handleCloseModal = (cerrarModal = false, consumibleActualizado = false) => {
+        if (cerrarModal) {
+            setIsModalOpen(false);
+            setConsumibleEditando(null);
+        }
+
         if (consumibleActualizado) {
-            fetchConsumible(paginaActual);
+            fetchConsumible(paginaActual); // refresca la tabla
         }
     };
 
@@ -375,17 +376,27 @@ const ConsumiblePage = () => {
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.kitMantenimiento}</td>
                                     <td className="px-6 py-4 text-sm text-gray-500">{c.nombreApellido}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
+
                                         <button
                                             onClick={() => handleEdit(c)}
-                                            className="text-indigo-600 hover:text-indigo-900"
+                                            className="text-indigo-600 hover:text-indigo-900 relative group"
                                         >
                                             <PencilIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                        bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Editar
+                                            </span>
                                         </button>
+
                                         <button
-                                            onClick={() => handleDelete(c.idConsumible, c.nombre)}
-                                            className="text-red-600 hover:text-red-900"
+                                            onClick={() => handleDelete(c.idConsumible, c.nombreIdentificador)}
+                                            className="text-red-600 hover:text-red-900 relative group"
                                         >
                                             <TrashIcon className="h-5 w-5" />
+                                            <span className="absolute -top-8 left-1/2 -translate-x-1/2 
+                                     bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100">
+                                                Eliminar
+                                            </span>
                                         </button>
                                     </td>
                                 </tr>
@@ -432,6 +443,7 @@ const ConsumiblePage = () => {
                         <ConsumibleForm
                             consumible={consumibleEditando}
                             onClose={handleCloseModal}
+
                         />
                     </div>
                 </div>

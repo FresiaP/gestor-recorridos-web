@@ -12,7 +12,9 @@ import {
     updateConsumible
 } from '../../../services/api';
 
+
 const ConsumibleForm = ({ consumible, onClose }) => {
+    const isEditing = !!consumible;
     const [OpcionesDispositivo, setOpcionesDispositivo] = useState([]);
     const [OpcionesUsuario, setOpcionesUsuario] = useState([]);
 
@@ -34,19 +36,18 @@ const ConsumibleForm = ({ consumible, onClose }) => {
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState(null);
     const [mensajeExito, setMensajeExito] = useState(null);
-    const isEditing = !!consumible;
 
+
+    // Función utilitaria disponible en todo el componente
+    const formatDate = (fecha) => {
+        if (!fecha) return '';
+        const date = new Date(fecha);
+        return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    };
 
     // Carga de datos si estamos editando
     useEffect(() => {
         if (consumible) {
-            const formatDate = (fecha) => {
-                if (!fecha) return '';
-                const date = new Date(fecha);
-                return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
-            };
-
-
             setForm({
                 idDispositivo: consumible.idDispositivo?.toString() ?? '',
                 idUsuario: consumible.idUsuario?.toString() ?? '',
@@ -56,9 +57,8 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 cartuchoCian: consumible.cartuchoCian?.toString() ?? '0',
                 cartuchoNegro: consumible.cartuchoNegro?.toString() ?? '0',
                 contenedorResiduos: consumible.contenedorResiduos?.toString() ?? '0',
-                kitAlimentador: consumible.kitAlimentador?.toString() ?? '',
-                kitMantenimiento: consumible.kitMantenimiento?.toString() ?? ''
-
+                kitAlimentador: consumible.kitAlimentador?.toString() ?? '0',
+                kitMantenimiento: consumible.kitMantenimiento?.toString() ?? '0'
             });
 
             const cargarDatosForaneos = async () => {
@@ -68,11 +68,14 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         getUsuarioById(consumible.idUsuario)
                     ]);
 
-                    setOpcionesDispositivo([{ value: dispositivo.idDispositivo, label: dispositivo.nombreIdentificador }]);
-                    setOpcionesUsuario([{ value: usuario.idUsuario, label: usuario.nombreApellido }]);
+                    setOpcionesDispositivo([
+                        { value: dispositivo.idDispositivo, label: dispositivo.nombreIdentificador }
+                    ]);
+                    setOpcionesUsuario([
+                        { value: usuario.idUsuario, label: usuario.nombreApellido }
+                    ]);
 
                     setForm(prev => ({ ...prev, ip: dispositivo.ip ?? '' }));
-
                 } catch (error) {
                     console.error('Error al cargar datos foráneos:', error);
                 }
@@ -81,6 +84,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
             cargarDatosForaneos();
         }
     }, [consumible]);
+
 
 
     const handleChange = (e) => {
@@ -119,6 +123,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
         const payload = {
             idDispositivo: safeParseInt(form.idDispositivo),
             idUsuario: safeParseInt(form.idUsuario),
+            fechaLectura: form.fechaLectura || new Date().toISOString().split('T')[0],
             cartuchoAmarillo: safeParseInt(form.cartuchoAmarillo),
             cartuchoMagenta: safeParseInt(form.cartuchoMagenta),
             cartuchoCian: safeParseInt(form.cartuchoCian),
@@ -137,6 +142,9 @@ const ConsumibleForm = ({ consumible, onClose }) => {
 
             // Mostrar mensaje de éxito
             setMensajeExito(`Registro ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
+
+            // Notificar al padre que debe refrescar la tabla, pero NO cerrar el modal
+            onClose(false, true); // primer flag: cerrar modal, segundo flag: refrescar tabla
 
             // LIMPIAR SOLO EL DISPOSITIVO
             setForm(prev => ({
@@ -186,16 +194,25 @@ const ConsumibleForm = ({ consumible, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Columna 1 */}
                 <div>
-                    {/* Select Dispositivo */}
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Dispositivo Asociado</label>
                     <AsyncSelect
                         cacheOptions
                         defaultOptions
                         loadOptions={async (inputValue) => {
                             const opciones = await buscarDispositivosSelect(inputValue, 1, 50);
-                            setOpcionesDispositivo(opciones);
-                            return opciones;
+                            console.log("Opciones recibidas:", opciones);
+
+                            // Filtrar impresoras, excluyendo consumibles y hardware
+                            const filtrados = opciones.filter(o =>
+                                o.nombreCategoria &&
+                                o.nombreCategoria.toLowerCase().includes("impresora") &&
+                                !o.nombreCategoria.toLowerCase().includes("consumible") &&
+                                !o.nombreCategoria.toLowerCase().includes("hardware")
+                            );
+
+                            setOpcionesDispositivo(filtrados);
+                            return filtrados;
                         }}
+
                         value={
                             form.idDispositivo
                                 ? OpcionesDispositivo.find((o) => o.value === safeParseInt(form.idDispositivo)) || null
@@ -216,6 +233,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         isClearable
                         className="mb-2"
                     />
+
 
                     {/* Select Usuario */}
                     <label className="block text-gray-700 text-sm font-bold">Técnico Asociado</label>
@@ -243,6 +261,18 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         }}
                         placeholder="Buscar y seleccionar Técnico..."
                         isClearable
+                    />
+
+                    <label className="block text-gray-700 text-sm font-bold" htmlFor="fechaLectura">
+                        Fecha de Lectura
+                    </label>
+                    <input
+                        id="fechaLectura"
+                        type="text"
+                        name="fechaLectura"
+                        value={form.fechaLectura}
+                        disabled
+                        className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
                     />
 
                     {/* Botón Extraer desde impresora */}
@@ -370,7 +400,6 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                         name="cartuchoCian"
                         value={form.cartuchoCian}
                         onChange={handleChange}
-                        // Quité 'required'
                         disabled={cargando || !!mensajeExito}
                         className="w-full border border-gray-300 rounded px-3 py-2"
                     />
@@ -439,7 +468,7 @@ const ConsumibleForm = ({ consumible, onClose }) => {
                 </button>
                 <button
                     type="button"
-                    onClick={() => onClose(false)}
+                    onClick={() => onClose(true)}
                     className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-2 rounded transition duration-150"
                     disabled={cargando}
                 >

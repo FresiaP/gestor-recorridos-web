@@ -1,12 +1,13 @@
 // src/components/layout/DashboardLayout.jsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; //para la redirección al logout
-import { eliminarToken, getUsuarioActual } from '../../services/api';
+import { api, eliminarToken, getRefreshToken, getUsuarioActual, guardarToken } from '../../services/api';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
 // CONFIGURACIÓN DE TIEMPOS DE INACTIVIDAD (en milisegundos)
 // Tiempo estándar de la industria para inactividad es 15 minutos (900,000 ms).
+//const INACTIVITY_TIME = 60000; // 1 minuto (60,000 ms)
 const INACTIVITY_TIME = 900000; // 15 minutos (900,000 ms)
 const WARNING_TIME = 5000;     // 5 segundos de aviso antes de cerrar sesión forzado
 
@@ -73,10 +74,30 @@ const DashboardLayout = ({ children, pageTitle, activePath }) => {
     }, [startWarning]);
 
     // Función para manejar el "Sí, quiero continuar" del modal
-    const handleContinueSession = () => {
-        setShowTimeoutModal(false);
-        clearTimeout(warningTimerRef.current); // Detenemos el timer de logout
-        resetTimeout(); // Reiniciamos el ciclo de inactividad
+    const handleContinueSession = async () => {
+        clearTimeout(warningTimerRef.current);
+
+        try {
+            const refreshToken = getRefreshToken();
+            if (!refreshToken) {
+                handleLogout();
+                return;
+            }
+
+            // Llamada al backend para refrescar tokens
+            const res = await api.post('/auth/refresh', { refreshToken });
+            const { token, refreshToken: newRefreshToken } = res.data;
+
+            // Guardar los nuevos tokens
+            guardarToken(token, newRefreshToken);
+
+            // Ocultar modal y reiniciar ciclo de inactividad
+            setShowTimeoutModal(false);
+            resetTimeout();
+        } catch (error) {
+            console.error("Error al refrescar sesión:", error);
+            handleLogout();
+        }
     };
 
     // --------------------------------------------------
@@ -160,7 +181,7 @@ const DashboardLayout = ({ children, pageTitle, activePath }) => {
                             </button>
                         </div>
                         <p className="mt-4 text-sm text-gray-500">
-                            La sesión se cerrará automáticamente en {WARNING_TIME / 5000} segundos si no respondes.
+                            La sesión se cerrará automáticamente en {WARNING_TIME / 1000} segundos si no respondes.
                         </p>
                     </div>
                 </div>

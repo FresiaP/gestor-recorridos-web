@@ -139,11 +139,15 @@ const ConsumoPage = () => {
         }
     };
 
-    const handleCloseModal = (consumoActualizado = false) => {
-        setIsModalOpen(false);
-        setConsumoEditando(null);
-        if (consumoActualizado) {
-            fetchConsumo(paginaActual);
+    const handleCloseModal = (cerrarModal = true, refrescarTabla = false) => {
+
+        if (refrescarTabla) {
+            fetchConsumo(paginaActual); // vuelve a consultar la API
+        }
+
+        if (cerrarModal) {
+            setIsModalOpen(false);
+            setConsumoEditando(null);
         }
     };
 

@@ -32,7 +32,7 @@ import UsuarioPage from "./pages/usuarios/UsuarioPage";
 
 function App() {
   return (
-    // CORRECCIÓN CLAVE: El Router debe envolver al AuthProvider para que useNavigate funcione dentro del contexto
+    // El Router debe envolver al AuthProvider para que useNavigate funcione dentro del contexto
     <Router>
       <AuthProvider>
         <Routes>
